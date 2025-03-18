@@ -1,8 +1,8 @@
 package com.orbismc.townyPolitics.listeners;
 
 import com.palmergames.bukkit.towny.event.NewDayEvent;
-import com.orbismc.townypolitics.TownyPolitics;
-import com.orbismc.townypolitics.managers.PoliticalPowerManager;
+import com.orbismc.townyPolitics.TownyPolitics;
+import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 

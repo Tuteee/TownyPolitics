@@ -4,8 +4,8 @@ import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.exceptions.NotRegisteredException;
 import com.palmergames.bukkit.towny.object.Nation;
 import com.palmergames.bukkit.towny.object.Resident;
-import com.orbismc.townypolitics.TownyPolitics;
-import com.orbismc.townypolitics.managers.PoliticalPowerManager;
+import com.orbismc.townyPolitics.TownyPolitics;
+import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -36,7 +36,13 @@ public class PoliticalPowerCommand implements CommandExecutor {
         // Check if player is in a nation
         Resident resident;
         try {
-            resident = townyAPI.getDataSource().getResident(player.getName());
+            // Use direct TownyAPI method instead of going through DataSource
+            resident = townyAPI.getResident(player.getUniqueId());
+
+            if (resident == null) {
+                player.sendMessage(ChatColor.RED + "You are not registered in Towny.");
+                return true;
+            }
 
             // If no args, show the player's nation PP
             if (args.length == 0) {
@@ -60,7 +66,14 @@ public class PoliticalPowerCommand implements CommandExecutor {
             // If args, show the specified nation's PP
             String nationName = args[0];
             try {
-                Nation nation = townyAPI.getDataSource().getNation(nationName);
+                // Use direct TownyAPI method to get nation by name
+                Nation nation = townyAPI.getNation(nationName);
+
+                if (nation == null) {
+                    player.sendMessage(ChatColor.RED + "Nation not found: " + nationName);
+                    return true;
+                }
+
                 double pp = ppManager.getPoliticalPower(nation);
                 double dailyGain = ppManager.calculateDailyPPGain(nation);
 
@@ -70,16 +83,14 @@ public class PoliticalPowerCommand implements CommandExecutor {
                 player.sendMessage(ChatColor.YELLOW + "Residents: " + ChatColor.WHITE + nation.getNumResidents());
 
                 return true;
-            } catch (NotRegisteredException e) {
-                player.sendMessage(ChatColor.RED + "Nation not found: " + nationName);
+            } catch (Exception e) {
+                player.sendMessage(ChatColor.RED + "Error finding nation: " + nationName);
                 return true;
             }
 
-        } catch (NotRegisteredException e) {
-            player.sendMessage(ChatColor.RED + "You are not registered in Towny.");
+        } catch (Exception e) {
+            player.sendMessage(ChatColor.RED + "Error retrieving your Towny data: " + e.getMessage());
             return true;
         }
     }
-
-    // Tab completion is now handled by AddonCommand in the main class
 }

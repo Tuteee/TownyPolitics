@@ -1,7 +1,7 @@
 package com.orbismc.townyPolitics.managers;
 
 import com.palmergames.bukkit.towny.object.Nation;
-import com.orbismc.townypolitics.TownyPolitics;
+import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.storage.PoliticalPowerStorage;
 import java.util.HashMap;
 import java.util.Map;
