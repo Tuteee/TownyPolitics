@@ -1,0 +1,15 @@
+# TownyPolitics Configuration
+
+# Political Power Settings
+political_power:
+  # The maximum daily political power gain for any nation
+  max_daily_gain: 5.0
+
+  # The minimum daily political power gain for any nation with at least one resident
+  min_daily_gain: 1.0
+
+  # The cost of various diplomatic actions (will be implemented in future updates)
+  costs:
+    ally: 10.0
+    enemy: 5.0
+    neutral: 2.0
