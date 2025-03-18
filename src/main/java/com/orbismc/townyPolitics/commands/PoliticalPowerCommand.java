@@ -5,19 +5,14 @@ import com.palmergames.bukkit.towny.exceptions.NotRegisteredException;
 import com.palmergames.bukkit.towny.object.Nation;
 import com.palmergames.bukkit.towny.object.Resident;
 import com.orbismc.townypolitics.TownyPolitics;
-import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
+import com.orbismc.townypolitics.managers.PoliticalPowerManager;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
-public class PoliticalPowerCommand implements CommandExecutor, TabCompleter {
+public class PoliticalPowerCommand implements CommandExecutor {
 
     private final TownyPolitics plugin;
     private final PoliticalPowerManager ppManager;
@@ -86,27 +81,5 @@ public class PoliticalPowerCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        List<String> completions = new ArrayList<>();
-
-        if (args.length == 1) {
-            // Tab complete for nation names
-            String partialName = args[0].toLowerCase();
-
-            // Get all nation names
-            List<String> nationNames = townyAPI.getNations().stream()
-                    .map(Nation::getName)
-                    .collect(Collectors.toList());
-
-            // Filter by partial input
-            for (String name : nationNames) {
-                if (name.toLowerCase().startsWith(partialName)) {
-                    completions.add(name);
-                }
-            }
-        }
-
-        return completions;
-    }
+    // Tab completion is now handled by AddonCommand in the main class
 }

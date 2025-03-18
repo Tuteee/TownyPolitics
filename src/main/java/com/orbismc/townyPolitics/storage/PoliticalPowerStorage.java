@@ -1,6 +1,6 @@
 package com.orbismc.townyPolitics.storage;
 
-import com.orbismc.townypolitics.TownyPolitics;
+import com.orbismc.townyPolitics.TownyPolitics;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 

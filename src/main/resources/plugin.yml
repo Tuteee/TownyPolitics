@@ -1,13 +1,7 @@
 name: TownyPolitics
 version: 1.0.0
-main: com.com.orbismc.townyPolitics.TownyPolitics
+main: com.orbismc.townyPolitics.TownyPolitics
 api-version: 1.16
 depend: [Towny]
-description: A political power system addon for Towny
+description: A huge addon...
 author: InjurynSickness
-
-commands:
-  nationpoliticalpower:
-    description: Fallback command to check nation political power
-    usage: /nationpoliticalpower [nation]
-    aliases: [npp]

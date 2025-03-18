@@ -2,12 +2,18 @@ package com.orbismc.townyPolitics;
 
 import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.TownyCommandAddonAPI;
-import com.orbismc.townyPolitics.commands.PoliticalPowerCommand;
-import com.orbismc.townyPolitics.listeners.TownyEventListener;
-import Managers.PoliticalPowerManager;
-import com.orbismc.townyPolitics.storage.PoliticalPowerStorage;
+import com.palmergames.bukkit.towny.command.commandobjects.CommandType;
+import com.palmergames.bukkit.towny.command.commandobjects.AddonCommand;
+import com.palmergames.bukkit.towny.object.Nation;
+import com.orbismc.townypolitics.commands.PoliticalPowerCommand;
+import com.orbismc.townypolitics.listeners.TownyEventListener;
+import com.orbismc.townypolitics.managers.PoliticalPowerManager;
+import com.orbismc.townypolitics.storage.PoliticalPowerStorage;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class TownyPolitics extends JavaPlugin {
 
@@ -58,20 +64,29 @@ public class TownyPolitics extends JavaPlugin {
      */
     private void registerNationCommand() {
         try {
-            // Use Towny's command addon API to register the subcommand (newer Towny versions)
+            // Create command executor
             PoliticalPowerCommand ppCommand = new PoliticalPowerCommand(this, ppManager);
-            TownyCommandAddonAPI.addSubCommand("nation", "politicalpower", ppCommand);
 
-            // Register an alias for shorter typing
-            TownyCommandAddonAPI.addSubCommand("nation", "pp", ppCommand);
+            // Create AddonCommand for the "politicalpower" subcommand
+            AddonCommand politicalPowerCmd = new AddonCommand(CommandType.NATION, "politicalpower", ppCommand);
+
+            // Add tab completion for nation names
+            List<String> nationNames = townyAPI.getNations().stream()
+                    .map(Nation::getName)
+                    .collect(Collectors.toList());
+            politicalPowerCmd.setTabCompletion(0, nationNames);
+
+            // Register the command with Towny
+            TownyCommandAddonAPI.addSubCommand(politicalPowerCmd);
+
+            // Create and register the "pp" alias
+            AddonCommand ppAlias = new AddonCommand(CommandType.NATION, "pp", ppCommand);
+            ppAlias.setTabCompletion(0, nationNames);
+            TownyCommandAddonAPI.addSubCommand(ppAlias);
 
             getLogger().info("Successfully registered the 'politicalpower' and 'pp' subcommands for nation command.");
         } catch (Exception e) {
             getLogger().severe("Failed to register nation subcommand: " + e.getMessage());
-            getLogger().info("Players will need to use the standalone command instead.");
-
-            // Register fallback command
-            this.getCommand("nationpoliticalpower").setExecutor(new PoliticalPowerCommand(this, ppManager));
         }
     }
 
