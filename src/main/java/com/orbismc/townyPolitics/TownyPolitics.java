@@ -15,6 +15,7 @@ public class TownyPolitics extends JavaPlugin {
     private TownyAPI townyAPI;
     private PoliticalPowerManager ppManager;
     private PoliticalPowerStorage storage;
+    private TownyEventListener eventListener;
 
     @Override
     public void onEnable() {
@@ -33,8 +34,12 @@ public class TownyPolitics extends JavaPlugin {
         // Initialize manager
         ppManager = new PoliticalPowerManager(this, storage);
 
-        // Register events
-        getServer().getPluginManager().registerEvents(new TownyEventListener(this, ppManager), this);
+        // Initialize and register listener
+        eventListener = new TownyEventListener(this, ppManager);
+        getServer().getPluginManager().registerEvents(eventListener, this);
+
+        // Connect listener and manager (circular reference)
+        ppManager.setEventListener(eventListener);
 
         // Register nation command
         registerNationCommand();

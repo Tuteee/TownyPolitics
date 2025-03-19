@@ -2,6 +2,7 @@ package com.orbismc.townyPolitics.managers;
 
 import com.palmergames.bukkit.towny.object.Nation;
 import com.orbismc.townyPolitics.TownyPolitics;
+import com.orbismc.townyPolitics.listeners.TownyEventListener;
 import com.orbismc.townyPolitics.storage.PoliticalPowerStorage;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,6 +13,7 @@ public class PoliticalPowerManager {
     private final TownyPolitics plugin;
     private final PoliticalPowerStorage storage;
     private final Map<UUID, Double> nationPP; // Cache of nation UUIDs to their political power
+    private TownyEventListener eventListener;
 
     public PoliticalPowerManager(TownyPolitics plugin, PoliticalPowerStorage storage) {
         this.plugin = plugin;
@@ -20,6 +22,14 @@ public class PoliticalPowerManager {
 
         // Load data from storage
         loadData();
+    }
+
+    /**
+     * Set the event listener reference so we can update metadata
+     * @param eventListener The TownyEventListener instance
+     */
+    public void setEventListener(TownyEventListener eventListener) {
+        this.eventListener = eventListener;
     }
 
     /**
@@ -47,8 +57,18 @@ public class PoliticalPowerManager {
      * @param amount The amount
      */
     public void setPoliticalPower(Nation nation, double amount) {
-        nationPP.put(nation.getUUID(), Math.max(0, amount)); // Ensure PP can't go below 0
-        storage.savePP(nation.getUUID(), Math.max(0, amount));
+        double newAmount = Math.max(0, amount); // Ensure PP can't go below 0
+        nationPP.put(nation.getUUID(), newAmount);
+        storage.savePP(nation.getUUID(), newAmount);
+
+        // Update the nation's information if the event listener is available
+        if (eventListener != null) {
+            try {
+                eventListener.updateNationPoliticalPowerMetadata(nation);
+            } catch (Exception e) {
+                plugin.getLogger().warning("Error updating political power display: " + e.getMessage());
+            }
+        }
     }
 
     /**
