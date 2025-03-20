@@ -4,22 +4,30 @@ import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.event.NewDayEvent;
 import com.palmergames.bukkit.towny.event.statusscreen.NationStatusScreenEvent;
 import com.palmergames.bukkit.towny.object.Nation;
+import com.palmergames.bukkit.towny.object.metadata.StringDataField;
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.entity.Player;
 import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 public class TownyEventListener implements Listener {
 
     private final TownyPolitics plugin;
     private final PoliticalPowerManager ppManager;
+
+    // Constants for metadata keys - try to identify what's being used currently
+    private static final String PP_META_KEY = "townypolitics_pp_display";
+    private static final String[] POSSIBLE_KEYS = {
+            "political_power", "pp", "townypolitics_pp", "politicalpower"
+    };
 
     public TownyEventListener(TownyPolitics plugin, PoliticalPowerManager ppManager) {
         this.plugin = plugin;
@@ -45,93 +53,82 @@ public class TownyEventListener implements Listener {
      * @param nation The nation to update
      */
     public void updateNationPoliticalPowerMetadata(Nation nation) {
-        // This method exists for compatibility with other classes
-        // but doesn't need to do anything as we're using the hover approach
-    }
-
-    /**
-     * Intercept the /n command and add our information with hover effect
-     */
-    @EventHandler
-    public void onCommandPreprocess(PlayerCommandPreprocessEvent event) {
-        String command = event.getMessage().toLowerCase();
-
-        // Check if this is a nation status command
-        if (command.startsWith("/n ") || command.equals("/n") ||
-                command.startsWith("/nation ") || command.equals("/nation")) {
-
-            // Get arguments (nation name if any)
-            String[] args = command.split(" ");
-
-            // If this is a subcommand like "/n new" or "/n invite", ignore it
-            if (args.length > 1) {
-                String subCommand = args[1].toLowerCase();
-                if (subCommand.equals("new") || subCommand.equals("create") ||
-                        subCommand.equals("invite") || subCommand.equals("add") ||
-                        subCommand.equals("kick") || subCommand.equals("deposit") ||
-                        subCommand.equals("withdraw") || subCommand.equals("leave") ||
-                        subCommand.equals("ally") || subCommand.equals("enemy") ||
-                        subCommand.equals("neutral") || subCommand.equals("set") ||
-                        subCommand.equals("toggle") || subCommand.equals("rank") ||
-                        subCommand.equals("king") || subCommand.equals("mayor") ||
-                        subCommand.equals("delete") || subCommand.equals("merge") ||
-                        subCommand.equals("politicalpower") || subCommand.equals("pp")) {
-                    return;
+        try {
+            // For each possible key, try to blank out the displayed value
+            for (String key : POSSIBLE_KEYS) {
+                if (nation.hasMeta(key)) {
+                    // Found an existing key, try to set its value to be minimal
+                    if (nation.getMetadata(key) instanceof StringDataField) {
+                        StringDataField field = (StringDataField) nation.getMetadata(key);
+                        // Set to empty to minimize display
+                        field.setValue("");
+                    }
                 }
             }
 
-            final Player player = event.getPlayer();
+            // Now set our display key with the format we want
+            if (nation.hasMeta(PP_META_KEY)) {
+                if (nation.getMetadata(PP_META_KEY) instanceof StringDataField) {
+                    StringDataField field = (StringDataField) nation.getMetadata(PP_META_KEY);
+                    field.setValue("[Political Power]");
+                } else {
+                    nation.removeMetaData(nation.getMetadata(PP_META_KEY));
+                    nation.addMetaData(new StringDataField(PP_META_KEY, "[Political Power]", ""));
+                }
+            } else {
+                nation.addMetaData(new StringDataField(PP_META_KEY, "[Political Power]", ""));
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("Error updating nation metadata: " + e.getMessage());
+        }
+    }
 
-            // Schedule a delayed task to find the nation and send PP info after the status screen
-            Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Nation nation = null;
+    /**
+     * Add the political power line with hover effect to the status screen
+     */
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onNationStatusScreen(NationStatusScreenEvent event) {
+        try {
+            // Update metadata to try to minimize any existing political power display
+            Nation nation = event.getNation();
+            updateNationPoliticalPowerMetadata(nation);
 
-                        // Try to get nation from arguments first
-                        if (args.length > 1) {
-                            String nationName = args[1];
-                            nation = TownyAPI.getInstance().getNation(nationName);
-                        }
+            // If the sender is a player, we'll send a component with hover effect
+            if (event.getCommandSender() instanceof Player) {
+                final Player player = (Player) event.getCommandSender();
+                final double currentPP = ppManager.getPoliticalPower(nation);
+                final double dailyGain = ppManager.calculateDailyPPGain(nation);
 
-                        // If no nation from args, try to get player's nation
-                        if (nation == null) {
-                            try {
-                                nation = TownyAPI.getInstance().getResident(player.getUniqueId()).getNation();
-                            } catch (Exception e) {
-                                // Player might not be in a nation
-                                return;
-                            }
-                        }
-
-                        // If we found a nation, show PP info
-                        if (nation != null && player.isOnline()) {
-                            double currentPP = ppManager.getPoliticalPower(nation);
-                            double dailyGain = ppManager.calculateDailyPPGain(nation);
-
-                            // Create the hover text with detailed information
-                            String hoverText = ChatColor.GOLD + "Current: " + ChatColor.WHITE +
-                                    String.format("%.2f", currentPP) + "\n" +
-                                    ChatColor.GOLD + "Daily Gain: " + ChatColor.GREEN +
-                                    "+" + String.format("%.2f", dailyGain) + "/day";
-
-                            // Create the hover components from the text
-                            BaseComponent[] hoverComponent = TextComponent.fromLegacyText(hoverText);
+                // Schedule a task to add the hover component after the status screen
+                Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            // Create hover text with detailed information
+                            ComponentBuilder hoverBuilder = new ComponentBuilder("Current: ")
+                                    .color(net.md_5.bungee.api.ChatColor.GOLD)
+                                    .append(String.format("%.2f", currentPP))
+                                    .color(net.md_5.bungee.api.ChatColor.WHITE)
+                                    .append("\nDaily Gain: ")
+                                    .color(net.md_5.bungee.api.ChatColor.GOLD)
+                                    .append("+" + String.format("%.2f", dailyGain) + "/day")
+                                    .color(net.md_5.bungee.api.ChatColor.GREEN);
 
                             // Create the main component with hover effect
-                            TextComponent ppComponent = new TextComponent(ChatColor.GOLD + "[Political Power]");
-                            ppComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hoverComponent));
+                            TextComponent ppComponent = new TextComponent("[Political Power] - Hover for details");
+                            ppComponent.setColor(net.md_5.bungee.api.ChatColor.GOLD);
+                            ppComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hoverBuilder.create()));
 
                             // Send the component to the player
                             player.spigot().sendMessage(ppComponent);
+                        } catch (Exception e) {
+                            plugin.getLogger().warning("Error sending hover component: " + e.getMessage());
                         }
-                    } catch (Exception e) {
-                        // Log any errors
-                        plugin.getLogger().warning("Error showing political power: " + e.getMessage());
                     }
-                }
-            }, 2L);
+                }, 2L);
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("Error handling nation status event: " + e.getMessage());
         }
     }
 }
