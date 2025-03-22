@@ -26,6 +26,8 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <encoding>UTF-8</encoding>
+                    <release>${java.version}</release>
                 </configuration>
             </plugin>
             <plugin>
@@ -68,7 +70,6 @@
             <version>1.21.1-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
-        <!-- Local Towny dependency from libs folder -->
         <dependency>
             <groupId>com.palmergames.bukkit</groupId>
             <artifactId>towny</artifactId>
