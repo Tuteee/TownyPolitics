@@ -65,12 +65,6 @@ public class OverviewCommand implements CommandExecutor {
         return true;
     }
 
-    /**
-     * Show nation overview including government type and political power
-     *
-     * @param player The player to show overview to
-     * @param nation The nation to show overview for
-     */
     private void showNationOverview(Player player, Nation nation) {
         // Get government type
         GovernmentType govType = govManager.getGovernmentType(nation);
@@ -80,13 +74,25 @@ public class OverviewCommand implements CommandExecutor {
         double dailyGain = ppManager.calculateDailyPPGain(nation);
 
         // Display overview with custom header
-        player.sendMessage(ChatColor.GOLD + ".oOo.________.[" + ChatColor.YELLOW + " " + nation.getName() + "'s Political Overview " + ChatColor.GOLD + "].________.oOo.");
+        player.sendMessage(ChatColor.GOLD + ".oOo.*__*.[" + ChatColor.YELLOW + " " + nation.getName() + "'s Political Overview " + ChatColor.GOLD + "].*__*.oOo.");
 
         // Government section
         player.sendMessage(ChatColor.DARK_GREEN + "Government: " + ChatColor.GREEN + govType.getDisplayName());
 
+        // Format the description to preserve line breaks but add proper coloring
+        String[] descLines = govType.getDescription().split("\n");
+        for (String line : descLines) {
+            if (line.contains("Effects:")) {
+                player.sendMessage(ChatColor.GRAY + line);
+            } else {
+                player.sendMessage(ChatColor.GRAY + "  " + line);
+            }
+        }
+
         // Political Power section
         player.sendMessage(ChatColor.DARK_GREEN + "Political Power: " + ChatColor.GREEN + String.format("%.2f", pp));
         player.sendMessage(ChatColor.DARK_GREEN + "Daily Political Power Gain: " + ChatColor.GREEN + String.format("+%.2f", dailyGain));
+
+        player.sendMessage(ChatColor.GOLD + ".oOo.*__*.*__*.oOo.");
     }
 }

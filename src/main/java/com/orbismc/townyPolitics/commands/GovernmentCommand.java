@@ -43,15 +43,6 @@ public class GovernmentCommand implements CommandExecutor, TabCompleter {
 
         Player player = (Player) sender;
 
-        // Debug info
-        System.out.println("Command label: " + label);
-        System.out.println("Command name: " + command.getName());
-        System.out.println("Command source: " + COMMAND_SOURCE);
-        System.out.println("Args length: " + args.length);
-        if (args.length > 0) {
-            System.out.println("First arg: " + args[0]);
-        }
-
         // Check if player is registered in Towny
         Resident resident = townyAPI.getResident(player.getUniqueId());
         if (resident == null) {
@@ -88,13 +79,6 @@ public class GovernmentCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Check permission
-        String permissionNode = "townypolitics.government.set." + COMMAND_SOURCE;
-        if (!player.hasPermission(permissionNode)) {
-            player.sendMessage(ChatColor.RED + "You don't have permission to change government types.");
-            return true;
-        }
-
         // Set government based on command source
         if (COMMAND_SOURCE.equals("town")) {
             return setTownGovernment(player, resident, govType);
@@ -105,14 +89,6 @@ public class GovernmentCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    /**
-     * Set town government type
-     *
-     * @param player The player
-     * @param resident The resident
-     * @param govType The government type to set
-     * @return true
-     */
     private boolean setTownGovernment(Player player, Resident resident, GovernmentType govType) {
         Town town = resident.getTownOrNull();
         if (town == null) {
@@ -126,21 +102,25 @@ public class GovernmentCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Set government type
-        govManager.setGovernmentType(town, govType);
-        player.sendMessage(ChatColor.GREEN + "Successfully changed " + town.getName() + "'s government to " + govType.getDisplayName() + ".");
+        // Check cooldown
+        if (govManager.isOnCooldown(town)) {
+            long remaining = govManager.getCooldownTimeRemaining(town);
+            String timeStr = govManager.formatCooldownTime(remaining);
+            player.sendMessage(ChatColor.RED + "Your town must wait " + timeStr + " before changing government again.");
+            return true;
+        }
+
+        // Try to set government type
+        boolean success = govManager.setGovernmentType(town, govType);
+        if (success) {
+            player.sendMessage(ChatColor.GREEN + "Successfully changed " + town.getName() + "'s government to " + govType.getDisplayName() + ".");
+        } else {
+            player.sendMessage(ChatColor.RED + "Failed to change government type due to a cooldown.");
+        }
 
         return true;
     }
 
-    /**
-     * Set nation government type
-     *
-     * @param player The player
-     * @param resident The resident
-     * @param govType The government type to set
-     * @return true
-     */
     private boolean setNationGovernment(Player player, Resident resident, GovernmentType govType) {
         Nation nation = resident.getNationOrNull();
         if (nation == null) {
@@ -154,9 +134,21 @@ public class GovernmentCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Set government type
-        govManager.setGovernmentType(nation, govType);
-        player.sendMessage(ChatColor.GREEN + "Successfully changed " + nation.getName() + "'s government to " + govType.getDisplayName() + ".");
+        // Check cooldown
+        if (govManager.isOnCooldown(nation)) {
+            long remaining = govManager.getCooldownTimeRemaining(nation);
+            String timeStr = govManager.formatCooldownTime(remaining);
+            player.sendMessage(ChatColor.RED + "Your nation must wait " + timeStr + " before changing government again.");
+            return true;
+        }
+
+        // Try to set government type
+        boolean success = govManager.setGovernmentType(nation, govType);
+        if (success) {
+            player.sendMessage(ChatColor.GREEN + "Successfully changed " + nation.getName() + "'s government to " + govType.getDisplayName() + ".");
+        } else {
+            player.sendMessage(ChatColor.RED + "Failed to change government type due to a cooldown.");
+        }
 
         return true;
     }
@@ -176,13 +168,6 @@ public class GovernmentCommand implements CommandExecutor, TabCompleter {
         return completions;
     }
 
-    /**
-     * Filter tab completions by prefix
-     *
-     * @param options Available options
-     * @param prefix Current user input prefix
-     * @return Filtered completions
-     */
     private List<String> filterCompletions(List<String> options, String prefix) {
         return options.stream()
                 .filter(option -> option.toLowerCase().startsWith(prefix.toLowerCase()))

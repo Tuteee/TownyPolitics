@@ -22,9 +22,6 @@ public class GovernmentStorage {
         setupStorage();
     }
 
-    /**
-     * Set up the storage file
-     */
     private void setupStorage() {
         dataFile = new File(plugin.getDataFolder(), "governments.yml");
 
@@ -35,6 +32,8 @@ public class GovernmentStorage {
                 data = YamlConfiguration.loadConfiguration(dataFile);
                 data.createSection("towns");
                 data.createSection("nations");
+                data.createSection("town_change_times");
+                data.createSection("nation_change_times");
                 data.save(dataFile);
             } catch (IOException e) {
                 plugin.getLogger().severe("Could not create government data file: " + e.getMessage());
@@ -48,6 +47,12 @@ public class GovernmentStorage {
             if (!data.contains("nations")) {
                 data.createSection("nations");
             }
+            if (!data.contains("town_change_times")) {
+                data.createSection("town_change_times");
+            }
+            if (!data.contains("nation_change_times")) {
+                data.createSection("nation_change_times");
+            }
             try {
                 data.save(dataFile);
             } catch (IOException e) {
@@ -56,26 +61,18 @@ public class GovernmentStorage {
         }
     }
 
-    /**
-     * Save government type for a town or nation
-     *
-     * @param uuid The town or nation UUID
-     * @param type The government type
-     * @param isNation True if this is for a nation, false for town
-     */
     public void saveGovernment(UUID uuid, GovernmentType type, boolean isNation) {
         String section = isNation ? "nations" : "towns";
         data.set(section + "." + uuid.toString(), type.name());
         saveData();
     }
 
-    /**
-     * Get government type for a town or nation
-     *
-     * @param uuid The town or nation UUID
-     * @param isNation True if this is for a nation, false for town
-     * @return The government type, AUTOCRACY by default
-     */
+    public void saveChangeTime(UUID uuid, long timestamp, boolean isNation) {
+        String section = isNation ? "nation_change_times" : "town_change_times";
+        data.set(section + "." + uuid.toString(), timestamp);
+        saveData();
+    }
+
     public GovernmentType getGovernment(UUID uuid, boolean isNation) {
         String section = isNation ? "nations" : "towns";
         String typeName = data.getString(section + "." + uuid.toString());
@@ -92,12 +89,11 @@ public class GovernmentStorage {
         }
     }
 
-    /**
-     * Load all government data
-     *
-     * @param isNation True to load nations, false for towns
-     * @return Map of UUIDs to their government types
-     */
+    public long getChangeTime(UUID uuid, boolean isNation) {
+        String section = isNation ? "nation_change_times" : "town_change_times";
+        return data.getLong(section + "." + uuid.toString(), 0);
+    }
+
     public Map<UUID, GovernmentType> loadAllGovernments(boolean isNation) {
         Map<UUID, GovernmentType> result = new HashMap<>();
         String section = isNation ? "nations" : "towns";
@@ -118,16 +114,29 @@ public class GovernmentStorage {
         return result;
     }
 
-    /**
-     * Save all data to file
-     */
+    public Map<UUID, Long> loadAllChangeTimes(boolean isNation) {
+        Map<UUID, Long> result = new HashMap<>();
+        String section = isNation ? "nation_change_times" : "town_change_times";
+
+        if (data.isConfigurationSection(section)) {
+            for (String key : data.getConfigurationSection(section).getKeys(false)) {
+                try {
+                    UUID uuid = UUID.fromString(key);
+                    long time = data.getLong(section + "." + key);
+                    result.put(uuid, time);
+                } catch (IllegalArgumentException e) {
+                    plugin.getLogger().warning("Invalid data in change time storage: " + key);
+                }
+            }
+        }
+
+        return result;
+    }
+
     public void saveAll() {
         saveData();
     }
 
-    /**
-     * Save data to file
-     */
     private void saveData() {
         try {
             data.save(dataFile);

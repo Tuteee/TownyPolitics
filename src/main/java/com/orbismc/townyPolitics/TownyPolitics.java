@@ -5,6 +5,7 @@ import com.palmergames.bukkit.towny.TownyCommandAddonAPI;
 import com.palmergames.bukkit.towny.TownyCommandAddonAPI.CommandType;
 import com.orbismc.townyPolitics.commands.GovernmentCommand;
 import com.orbismc.townyPolitics.commands.OverviewCommand;
+import com.orbismc.townyPolitics.commands.TownyAdminPoliticsCommand;
 import com.orbismc.townyPolitics.listeners.TownyEventListener;
 import com.orbismc.townyPolitics.managers.GovernmentManager;
 import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
@@ -73,27 +74,28 @@ public class TownyPolitics extends JavaPlugin {
      * Register all commands
      */
     private void registerCommands() {
-        // Create command executors
-        GovernmentCommand townGovCommand = new GovernmentCommand(this, govManager, "town");
-        GovernmentCommand nationGovCommand = new GovernmentCommand(this, govManager, "nation");
-        OverviewCommand overviewCommand = new OverviewCommand(this, govManager, ppManager);
-
         try {
-            // Register town subcommands
+            // Create command executors
+            GovernmentCommand townGovCommand = new GovernmentCommand(this, govManager, "town");
+            GovernmentCommand nationGovCommand = new GovernmentCommand(this, govManager, "nation");
+            OverviewCommand overviewCommand = new OverviewCommand(this, govManager, ppManager);
+
+            // Register town commands
             TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "government", townGovCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "gov", townGovCommand);
 
-            // Register nation subcommands
+            // Register nation commands
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "government", nationGovCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "gov", nationGovCommand);
-
-            // Register overview command (replaces pp/politicalpower and info commands)
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "overview", overviewCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "o", overviewCommand);
 
-            getLogger().info("Successfully registered all Towny subcommands.");
+            // Register TownyAdmin command
+            new TownyAdminPoliticsCommand(this, govManager, ppManager);
+
+            getLogger().info("Successfully registered all commands.");
         } catch (Exception e) {
-            getLogger().severe("Failed to register Towny subcommands: " + e.getMessage());
+            getLogger().severe("Failed to register commands: " + e.getMessage());
             e.printStackTrace();
         }
     }
