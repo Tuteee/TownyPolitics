@@ -74,25 +74,23 @@ public class OverviewCommand implements CommandExecutor {
         double dailyGain = ppManager.calculateDailyPPGain(nation);
 
         // Display overview with custom header
-        player.sendMessage(ChatColor.GOLD + ".oOo.*__*.[" + ChatColor.YELLOW + " " + nation.getName() + "'s Political Overview " + ChatColor.GOLD + "].*__*.oOo.");
+        player.sendMessage(ChatColor.GOLD + ".oOo.________.[" + ChatColor.YELLOW + " " + nation.getName() + "'s Political Overview " + ChatColor.GOLD + "].________.oOo.");
 
         // Government section
         player.sendMessage(ChatColor.DARK_GREEN + "Government: " + ChatColor.GREEN + govType.getDisplayName());
 
-        // Format the description to preserve line breaks but add proper coloring
+        // Format the description to show effects title in dark green and effects in green
         String[] descLines = govType.getDescription().split("\n");
         for (String line : descLines) {
             if (line.contains("Effects:")) {
-                player.sendMessage(ChatColor.GRAY + line);
+                player.sendMessage(ChatColor.DARK_GREEN + line);
             } else {
-                player.sendMessage(ChatColor.GRAY + "  " + line);
+                player.sendMessage(ChatColor.GREEN + "  " + line);
             }
         }
 
         // Political Power section
         player.sendMessage(ChatColor.DARK_GREEN + "Political Power: " + ChatColor.GREEN + String.format("%.2f", pp));
         player.sendMessage(ChatColor.DARK_GREEN + "Daily Political Power Gain: " + ChatColor.GREEN + String.format("+%.2f", dailyGain));
-
-        player.sendMessage(ChatColor.GOLD + ".oOo.*__*.*__*.oOo.");
     }
 }

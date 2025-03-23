@@ -16,8 +16,8 @@ political_power:
 
 # Government Settings
 government:
-  # Cooldown between government changes (in days) - Not implemented yet
+  # Cooldown between government changes (in days)
   change_cooldown: 30
 
-  # Time it takes to switch governments (in days) - Not implemented yet
+  # Time it takes to switch governments after the first switch (in days)
   switch_time: 7
