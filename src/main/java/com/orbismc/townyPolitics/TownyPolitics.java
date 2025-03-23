@@ -3,9 +3,12 @@ package com.orbismc.townyPolitics;
 import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.TownyCommandAddonAPI;
 import com.palmergames.bukkit.towny.TownyCommandAddonAPI.CommandType;
-import com.orbismc.townyPolitics.commands.PoliticalPowerCommand;
+import com.orbismc.townyPolitics.commands.GovernmentCommand;
+import com.orbismc.townyPolitics.commands.OverviewCommand;
 import com.orbismc.townyPolitics.listeners.TownyEventListener;
+import com.orbismc.townyPolitics.managers.GovernmentManager;
 import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
+import com.orbismc.townyPolitics.storage.GovernmentStorage;
 import com.orbismc.townyPolitics.storage.PoliticalPowerStorage;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -14,7 +17,9 @@ public class TownyPolitics extends JavaPlugin {
 
     private TownyAPI townyAPI;
     private PoliticalPowerManager ppManager;
-    private PoliticalPowerStorage storage;
+    private PoliticalPowerStorage ppStorage;
+    private GovernmentManager govManager;
+    private GovernmentStorage govStorage;
     private TownyEventListener eventListener;
 
     @Override
@@ -28,11 +33,13 @@ public class TownyPolitics extends JavaPlugin {
 
         townyAPI = TownyAPI.getInstance();
 
-        // Initialize storage
-        storage = new PoliticalPowerStorage(this);
+        // Initialize storages
+        ppStorage = new PoliticalPowerStorage(this);
+        govStorage = new GovernmentStorage(this);
 
-        // Initialize manager
-        ppManager = new PoliticalPowerManager(this, storage);
+        // Initialize managers
+        ppManager = new PoliticalPowerManager(this, ppStorage);
+        govManager = new GovernmentManager(this, govStorage);
 
         // Initialize and register listener
         eventListener = new TownyEventListener(this, ppManager);
@@ -41,8 +48,8 @@ public class TownyPolitics extends JavaPlugin {
         // Connect listener and manager (circular reference)
         ppManager.setEventListener(eventListener);
 
-        // Register nation command
-        registerNationCommand();
+        // Register commands
+        registerCommands();
 
         // Save default config
         saveDefaultConfig();
@@ -53,29 +60,41 @@ public class TownyPolitics extends JavaPlugin {
     @Override
     public void onDisable() {
         // Save all data on plugin disable
-        if (storage != null) {
-            storage.saveAll();
+        if (ppStorage != null) {
+            ppStorage.saveAll();
+        }
+        if (govStorage != null) {
+            govStorage.saveAll();
         }
         getLogger().info("TownyPolitics has been disabled!");
     }
 
     /**
-     * Register the politicalpower subcommand for the nation command
+     * Register all commands
      */
-    private void registerNationCommand() {
+    private void registerCommands() {
+        // Create command executors
+        GovernmentCommand townGovCommand = new GovernmentCommand(this, govManager, "town");
+        GovernmentCommand nationGovCommand = new GovernmentCommand(this, govManager, "nation");
+        OverviewCommand overviewCommand = new OverviewCommand(this, govManager, ppManager);
+
         try {
-            // Create command executor
-            PoliticalPowerCommand ppCommand = new PoliticalPowerCommand(this, ppManager);
+            // Register town subcommands
+            TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "government", townGovCommand);
+            TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "gov", townGovCommand);
 
-            // Register the command with Towny using CommandType.NATION
-            TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "politicalpower", ppCommand);
+            // Register nation subcommands
+            TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "government", nationGovCommand);
+            TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "gov", nationGovCommand);
 
-            // Register an alias for shorter typing
-            TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "pp", ppCommand);
+            // Register overview command (replaces pp/politicalpower and info commands)
+            TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "overview", overviewCommand);
+            TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "o", overviewCommand);
 
-            getLogger().info("Successfully registered the 'politicalpower' and 'pp' subcommands for nation command.");
+            getLogger().info("Successfully registered all Towny subcommands.");
         } catch (Exception e) {
-            getLogger().severe("Failed to register nation subcommand: " + e.getMessage());
+            getLogger().severe("Failed to register Towny subcommands: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -85,5 +104,9 @@ public class TownyPolitics extends JavaPlugin {
 
     public PoliticalPowerManager getPPManager() {
         return ppManager;
+    }
+
+    public GovernmentManager getGovManager() {
+        return govManager;
     }
 }

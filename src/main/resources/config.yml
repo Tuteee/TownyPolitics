@@ -13,3 +13,11 @@ political_power:
     ally: 10.0
     enemy: 5.0
     neutral: 2.0
+
+# Government Settings
+government:
+  # Cooldown between government changes (in days) - Not implemented yet
+  change_cooldown: 30
+
+  # Time it takes to switch governments (in days) - Not implemented yet
+  switch_time: 7
