@@ -47,6 +47,10 @@ public class GovernmentCommand implements CommandExecutor, TabCompleter {
         System.out.println("Command label: " + label);
         System.out.println("Command name: " + command.getName());
         System.out.println("Command source: " + COMMAND_SOURCE);
+        System.out.println("Args length: " + args.length);
+        if (args.length > 0) {
+            System.out.println("First arg: " + args[0]);
+        }
 
         // Check if player is registered in Towny
         Resident resident = townyAPI.getResident(player.getUniqueId());
@@ -55,122 +59,28 @@ public class GovernmentCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Handle subcommands
+        // Both town and nation have the same simplified command structure now
         if (args.length == 0) {
-            if (!player.hasPermission("townypolitics.government.info")) {
-                player.sendMessage(ChatColor.RED + "You don't have permission to view government info.");
-                return true;
+            player.sendMessage(ChatColor.RED + "Usage: /" + COMMAND_SOURCE + " government <type>");
+            player.sendMessage(ChatColor.YELLOW + "Available government types: " +
+                    Arrays.stream(GovernmentType.values())
+                            .map(GovernmentType::name)
+                            .collect(Collectors.joining(", ")));
+
+            if (COMMAND_SOURCE.equals("nation")) {
+                player.sendMessage(ChatColor.YELLOW + "Use " + ChatColor.WHITE + "/nation overview" +
+                        ChatColor.YELLOW + " to see your current government type");
             }
-            return showInfo(player, resident);
-        }
-
-        String subCommand = args[0].toLowerCase();
-
-        switch (subCommand) {
-            case "help":
-                return showHelp(player);
-            case "info":
-                if (!player.hasPermission("townypolitics.government.info")) {
-                    player.sendMessage(ChatColor.RED + "You don't have permission to view government info.");
-                    return true;
-                }
-                return showInfo(player, resident);
-            case "set":
-                String permNode = "townypolitics.government.set." + COMMAND_SOURCE;
-                if (!player.hasPermission(permNode)) {
-                    player.sendMessage(ChatColor.RED + "You don't have permission to change government types.");
-                    return true;
-                }
-                return setGovernment(player, resident, args);
-            case "list":
-                if (!player.hasPermission("townypolitics.government.list")) {
-                    player.sendMessage(ChatColor.RED + "You don't have permission to list government types.");
-                    return true;
-                }
-                return listGovernments(player);
-            default:
-                player.sendMessage(ChatColor.RED + "Unknown subcommand: " + subCommand);
-                return showHelp(player);
-        }
-    }
-
-    /**
-     * Show command help to a player
-     *
-     * @param player The player
-     * @return true
-     */
-    private boolean showHelp(Player player) {
-        player.sendMessage(ChatColor.GOLD + "=== Government Commands ===");
-        player.sendMessage(ChatColor.YELLOW + "/" + COMMAND_SOURCE + " government " + ChatColor.WHITE + "- View government type");
-        player.sendMessage(ChatColor.YELLOW + "/" + COMMAND_SOURCE + " government set <type> " + ChatColor.WHITE + "- Set government type (mayor/king only)");
-        player.sendMessage(ChatColor.YELLOW + "/" + COMMAND_SOURCE + " government list " + ChatColor.WHITE + "- List all government types");
-        player.sendMessage(ChatColor.YELLOW + "/" + COMMAND_SOURCE + " government help " + ChatColor.WHITE + "- Show this help message");
-        return true;
-    }
-
-    /**
-     * Show government info to a player
-     *
-     * @param player The player
-     * @param resident The resident
-     * @return true
-     */
-    private boolean showInfo(Player player, Resident resident) {
-        if (COMMAND_SOURCE.equals("town")) {
-            Town town = resident.getTownOrNull();
-            if (town == null) {
-                player.sendMessage(ChatColor.RED + "You are not part of a town.");
-                return true;
-            }
-
-            GovernmentType govType = govManager.getGovernmentType(town);
-
-            player.sendMessage(ChatColor.GOLD + "=== " + town.getName() + "'s Government ===");
-            player.sendMessage(ChatColor.YELLOW + "Type: " + ChatColor.WHITE + govType.getDisplayName());
-            player.sendMessage(ChatColor.YELLOW + "Description: " + ChatColor.WHITE + govType.getDescription());
-
-            return true;
-        } else if (COMMAND_SOURCE.equals("nation")) {
-            Nation nation = resident.getNationOrNull();
-            if (nation == null) {
-                player.sendMessage(ChatColor.RED + "You are not part of a nation.");
-                return true;
-            }
-
-            GovernmentType govType = govManager.getGovernmentType(nation);
-
-            player.sendMessage(ChatColor.GOLD + "=== " + nation.getName() + "'s Government ===");
-            player.sendMessage(ChatColor.YELLOW + "Type: " + ChatColor.WHITE + govType.getDisplayName());
-            player.sendMessage(ChatColor.YELLOW + "Description: " + ChatColor.WHITE + govType.getDescription());
-
             return true;
         }
 
-        return showHelp(player);
-    }
-
-    /**
-     * Set government type
-     *
-     * @param player The player
-     * @param resident The resident
-     * @param args Command arguments
-     * @return true
-     */
-    private boolean setGovernment(Player player, Resident resident, String[] args) {
-        // Check if args are valid
-        if (args.length < 2) {
-            player.sendMessage(ChatColor.RED + "Usage: /" + COMMAND_SOURCE + " government set <type>");
-            return true;
-        }
-
-        String govTypeName = args[1].toUpperCase();
+        // First argument is the government type
+        String govTypeName = args[0].toUpperCase();
 
         // Try to get the government type
         GovernmentType govType = GovernmentType.getByName(govTypeName);
         if (govType == null) {
-            player.sendMessage(ChatColor.RED + "Invalid government type: " + args[1]);
+            player.sendMessage(ChatColor.RED + "Invalid government type: " + args[0]);
             player.sendMessage(ChatColor.RED + "Available types: " +
                     Arrays.stream(GovernmentType.values())
                             .map(GovernmentType::name)
@@ -178,62 +88,75 @@ public class GovernmentCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Handle town government change
+        // Check permission
+        String permissionNode = "townypolitics.government.set." + COMMAND_SOURCE;
+        if (!player.hasPermission(permissionNode)) {
+            player.sendMessage(ChatColor.RED + "You don't have permission to change government types.");
+            return true;
+        }
+
+        // Set government based on command source
         if (COMMAND_SOURCE.equals("town")) {
-            Town town = resident.getTownOrNull();
-            if (town == null) {
-                player.sendMessage(ChatColor.RED + "You are not part of a town.");
-                return true;
-            }
-
-            // Check if player is the mayor
-            if (!town.getMayor().equals(resident)) {
-                player.sendMessage(ChatColor.RED + "You must be the mayor to change the town's government.");
-                return true;
-            }
-
-            // Set government type
-            govManager.setGovernmentType(town, govType);
-            player.sendMessage(ChatColor.GREEN + "Successfully changed " + town.getName() + "'s government to " + govType.getDisplayName() + ".");
-
-            return true;
-        }
-        // Handle nation government change
-        else if (COMMAND_SOURCE.equals("nation")) {
-            Nation nation = resident.getNationOrNull();
-            if (nation == null) {
-                player.sendMessage(ChatColor.RED + "You are not part of a nation.");
-                return true;
-            }
-
-            // Check if player is the king
-            if (!nation.isKing(resident)) {
-                player.sendMessage(ChatColor.RED + "You must be the nation leader to change the nation's government.");
-                return true;
-            }
-
-            // Set government type
-            govManager.setGovernmentType(nation, govType);
-            player.sendMessage(ChatColor.GREEN + "Successfully changed " + nation.getName() + "'s government to " + govType.getDisplayName() + ".");
-
-            return true;
+            return setTownGovernment(player, resident, govType);
+        } else if (COMMAND_SOURCE.equals("nation")) {
+            return setNationGovernment(player, resident, govType);
         }
 
-        return showHelp(player);
+        return true;
     }
 
     /**
-     * List all government types
+     * Set town government type
      *
      * @param player The player
+     * @param resident The resident
+     * @param govType The government type to set
      * @return true
      */
-    private boolean listGovernments(Player player) {
-        player.sendMessage(ChatColor.GOLD + "=== Available Government Types ===");
-
-        for (GovernmentType type : GovernmentType.values()) {
-            player.sendMessage(ChatColor.YELLOW + type.getDisplayName() + ChatColor.WHITE + " - " + type.getDescription());
+    private boolean setTownGovernment(Player player, Resident resident, GovernmentType govType) {
+        Town town = resident.getTownOrNull();
+        if (town == null) {
+            player.sendMessage(ChatColor.RED + "You are not part of a town.");
+            return true;
         }
+
+        // Check if player is the mayor
+        if (!town.getMayor().equals(resident)) {
+            player.sendMessage(ChatColor.RED + "You must be the mayor to change the town's government.");
+            return true;
+        }
+
+        // Set government type
+        govManager.setGovernmentType(town, govType);
+        player.sendMessage(ChatColor.GREEN + "Successfully changed " + town.getName() + "'s government to " + govType.getDisplayName() + ".");
+
+        return true;
+    }
+
+    /**
+     * Set nation government type
+     *
+     * @param player The player
+     * @param resident The resident
+     * @param govType The government type to set
+     * @return true
+     */
+    private boolean setNationGovernment(Player player, Resident resident, GovernmentType govType) {
+        Nation nation = resident.getNationOrNull();
+        if (nation == null) {
+            player.sendMessage(ChatColor.RED + "You are not part of a nation.");
+            return true;
+        }
+
+        // Check if player is the king
+        if (!nation.isKing(resident)) {
+            player.sendMessage(ChatColor.RED + "You must be the nation leader to change the nation's government.");
+            return true;
+        }
+
+        // Set government type
+        govManager.setGovernmentType(nation, govType);
+        player.sendMessage(ChatColor.GREEN + "Successfully changed " + nation.getName() + "'s government to " + govType.getDisplayName() + ".");
 
         return true;
     }
@@ -242,16 +165,12 @@ public class GovernmentCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
 
+        // For both town and nation, only provide government type completions at the first level
         if (args.length == 1) {
-            // First argument - subcommands
-            List<String> subCommands = Arrays.asList("help", "info", "set", "list");
-            return filterCompletions(subCommands, args[0]);
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("set")) {
-            // Second argument for "set" - government types
             List<String> govTypes = Arrays.stream(GovernmentType.values())
                     .map(GovernmentType::name)
                     .collect(Collectors.toList());
-            return filterCompletions(govTypes, args[1]);
+            return filterCompletions(govTypes, args[0]);
         }
 
         return completions;
