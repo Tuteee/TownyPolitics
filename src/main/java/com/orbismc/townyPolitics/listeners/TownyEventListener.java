@@ -100,9 +100,6 @@ public class TownyEventListener implements Listener {
             // Add Government Type component for towns
             addTownGovernmentComponent(event, town);
 
-            // Add Town Corruption component
-            addTownCorruptionComponent(event, town);
-
         } catch (Exception e) {
             plugin.getLogger().warning("Error adding components to town status screen: " + e.getMessage());
             e.printStackTrace();
@@ -206,35 +203,35 @@ public class TownyEventListener implements Listener {
         String resourceModStr = String.format("%+.1f%%", (resourceMod - 1.0) * 100);
         String spendingModStr = String.format("%+.1f%%", (spendingMod - 1.0) * 100);
 
-        // Determine text color based on corruption level
-        NamedTextColor corruptColor;
-        if (corruption >= 75) corruptColor = NamedTextColor.DARK_RED;
-        else if (corruption >= 50) corruptColor = NamedTextColor.RED;
-        else if (corruption >= 25) corruptColor = NamedTextColor.GOLD;
-        else corruptColor = NamedTextColor.GREEN;
+        // Get corruption threshold level and determine color
+        int thresholdLevel = corruptionManager.getCorruptionThresholdLevel(nation);
+        NamedTextColor corruptColor = switch (thresholdLevel) {
+            case 0 -> NamedTextColor.GREEN;       // Minimal
+            case 1 -> NamedTextColor.YELLOW;      // Low
+            case 2 -> NamedTextColor.GOLD;        // Medium
+            case 3 -> NamedTextColor.RED;         // High
+            case 4 -> NamedTextColor.DARK_RED;    // Critical
+            default -> NamedTextColor.GREEN;
+        };
+
+        // Get threshold name
+        String thresholdName = corruptionManager.getCorruptionThresholdName(thresholdLevel);
 
         // Create hover text component
-        Component hoverText = Component.text("Corruption Level: " + String.format("%.1f%%", corruption))
-                .color(corruptColor)
+        Component hoverText = Component.text("Corruption Information")
+                .color(NamedTextColor.DARK_GREEN)
                 .append(Component.newline())
+                .append(Component.newline())
+                .append(Component.text("Status: ")
+                        .color(NamedTextColor.YELLOW))
+                .append(Component.text(thresholdName)
+                        .color(corruptColor))
+                .append(Component.newline())
+                .append(Component.text("Current Level: " + String.format("%.1f%%", corruption))
+                        .color(corruptColor))
                 .append(Component.newline())
                 .append(Component.text("Daily Change: +" + String.format("%.2f%%", dailyGain))
-                        .color(NamedTextColor.RED))
-                .append(Component.newline())
-                .append(Component.text("Effects:")
-                        .color(NamedTextColor.GOLD))
-                .append(Component.newline())
-                .append(Component.text("• Max Taxation: " + taxModStr)
-                        .color(NamedTextColor.YELLOW))
-                .append(Component.newline())
-                .append(Component.text("• Political Power: " + ppModStr)
-                        .color(NamedTextColor.YELLOW))
-                .append(Component.newline())
-                .append(Component.text("• Resource Output: " + resourceModStr)
-                        .color(NamedTextColor.YELLOW))
-                .append(Component.newline())
-                .append(Component.text("• Spending: " + spendingModStr)
-                        .color(NamedTextColor.YELLOW));
+                        .color(NamedTextColor.RED));
 
         // Create the Corruption component
         Component openBracket = Component.text("[").color(NamedTextColor.GRAY);
@@ -268,13 +265,12 @@ public class TownyEventListener implements Listener {
         else corruptColor = NamedTextColor.GREEN;
 
         // Create hover text component
-        Component hoverText = Component.text("Town Corruption: " + String.format("%.1f%%", corruption))
-                .color(corruptColor)
+        Component hoverText = Component.text("Corruption Information")
+                .color(NamedTextColor.DARK_GREEN)
                 .append(Component.newline())
                 .append(Component.newline())
-                .append(Component.text("Corruption affects taxation rates, resource"))
-                .append(Component.newline())
-                .append(Component.text("production, and town costs."));
+                .append(Component.text("Current Corruption Level: " + String.format("%.1f%%", corruption))
+                        .color(corruptColor));
 
         // Create the Corruption component
         Component openBracket = Component.text("[").color(NamedTextColor.GRAY);

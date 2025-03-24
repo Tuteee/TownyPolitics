@@ -33,7 +33,6 @@ public class CorruptionStorage {
                 dataFile.createNewFile();
                 data = YamlConfiguration.loadConfiguration(dataFile);
                 data.createSection("nations");
-                data.createSection("towns");
                 data.save(dataFile);
             } catch (IOException e) {
                 plugin.getLogger().severe("Could not create corruption data file: " + e.getMessage());
@@ -42,14 +41,11 @@ public class CorruptionStorage {
             data = YamlConfiguration.loadConfiguration(dataFile);
             if (!data.contains("nations")) {
                 data.createSection("nations");
-            }
-            if (!data.contains("towns")) {
-                data.createSection("towns");
-            }
-            try {
-                data.save(dataFile);
-            } catch (IOException e) {
-                plugin.getLogger().severe("Could not update corruption data file: " + e.getMessage());
+                try {
+                    data.save(dataFile);
+                } catch (IOException e) {
+                    plugin.getLogger().severe("Could not update corruption data file: " + e.getMessage());
+                }
             }
         }
     }

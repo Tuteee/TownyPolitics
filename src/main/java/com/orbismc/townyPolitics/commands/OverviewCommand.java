@@ -106,10 +106,10 @@ public class OverviewCommand implements CommandExecutor {
         if (corruption >= 75) corruptColor = ChatColor.DARK_RED;
         else if (corruption >= 50) corruptColor = ChatColor.RED;
         else if (corruption <= 25) corruptColor = ChatColor.YELLOW;
-        else corruptColor = ChatColor.DARK_RED;
+        else corruptColor = ChatColor.GREEN;
 
-        player.sendMessage(ChatColor.RED + "Corruption Level: " + corruptColor + String.format("%.1f%%", corruption));
-        player.sendMessage(ChatColor.RED + "Daily Corruption Gain: " + ChatColor.RED + String.format("+%.2f%%", corruptionGain));
+        player.sendMessage(ChatColor.DARK_RED + "Corruption Level: " + corruptColor + String.format("%.1f%%", corruption));
+        player.sendMessage(ChatColor.DARK_RED + "Daily Corruption Gain: " + ChatColor.RED + String.format("+%.2f%%", corruptionGain));
     }
 
     private String formatModifier(double modifier) {

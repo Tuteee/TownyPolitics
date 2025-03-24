@@ -16,14 +16,16 @@ public class CorruptionManager {
     private final CorruptionStorage storage;
     private final GovernmentManager govManager;
 
-    // Cache of nation/town UUIDs to their corruption levels
+    // Cache of nation UUIDs to their corruption levels
     private final Map<UUID, Double> nationCorruption;
-    private final Map<UUID, Double> townCorruption;
 
     // Maximum corruption level (100% is completely corrupt)
     private final double MAX_CORRUPTION = 100.0;
 
-    // Critical corruption threshold where negative effects become severe
+    // Corruption thresholds
+    private final double LOW_THRESHOLD;
+    private final double MEDIUM_THRESHOLD;
+    private final double HIGH_THRESHOLD;
     private final double CRITICAL_THRESHOLD;
 
     public CorruptionManager(TownyPolitics plugin, CorruptionStorage storage, GovernmentManager govManager) {
@@ -31,10 +33,12 @@ public class CorruptionManager {
         this.storage = storage;
         this.govManager = govManager;
         this.nationCorruption = new HashMap<>();
-        this.townCorruption = new HashMap<>();
 
-        // Load configuration
-        this.CRITICAL_THRESHOLD = plugin.getConfig().getDouble("corruption.critical_threshold", 75.0);
+        // Load configuration - threshold values
+        this.LOW_THRESHOLD = plugin.getConfig().getDouble("corruption.thresholds.low", 25.0);
+        this.MEDIUM_THRESHOLD = plugin.getConfig().getDouble("corruption.thresholds.medium", 50.0);
+        this.HIGH_THRESHOLD = plugin.getConfig().getDouble("corruption.thresholds.high", 75.0);
+        this.CRITICAL_THRESHOLD = plugin.getConfig().getDouble("corruption.thresholds.critical", 90.0);
 
         // Load data from storage
         loadData();
@@ -42,17 +46,11 @@ public class CorruptionManager {
 
     public void loadData() {
         nationCorruption.clear();
-        townCorruption.clear();
         nationCorruption.putAll(storage.loadAllCorruption(true));
-        townCorruption.putAll(storage.loadAllCorruption(false));
     }
 
     public double getCorruption(Nation nation) {
         return nationCorruption.getOrDefault(nation.getUUID(), 0.0);
-    }
-
-    public double getCorruption(Town town) {
-        return townCorruption.getOrDefault(town.getUUID(), 0.0);
     }
 
     public void setCorruption(Nation nation, double amount) {
@@ -62,21 +60,9 @@ public class CorruptionManager {
         storage.saveCorruption(nation.getUUID(), newAmount, true);
     }
 
-    public void setCorruption(Town town, double amount) {
-        // Ensure corruption can't go below 0 or above MAX_CORRUPTION
-        double newAmount = Math.min(MAX_CORRUPTION, Math.max(0, amount));
-        townCorruption.put(town.getUUID(), newAmount);
-        storage.saveCorruption(town.getUUID(), newAmount, false);
-    }
-
     public void addCorruption(Nation nation, double amount) {
         double current = getCorruption(nation);
         setCorruption(nation, current + amount);
-    }
-
-    public void addCorruption(Town town, double amount) {
-        double current = getCorruption(town);
-        setCorruption(town, current + amount);
     }
 
     public void reduceCorruption(Nation nation, double amount) {
@@ -84,17 +70,58 @@ public class CorruptionManager {
         setCorruption(nation, current - amount);
     }
 
-    public void reduceCorruption(Town town, double amount) {
-        double current = getCorruption(town);
-        setCorruption(town, current - amount);
+    /**
+     * Get the corruption threshold level for a nation
+     *
+     * @param nation The nation
+     * @return The threshold level (0-4, where 4 is critical)
+     */
+    public int getCorruptionThresholdLevel(Nation nation) {
+        double corruption = getCorruption(nation);
+
+        if (corruption >= CRITICAL_THRESHOLD) return 4; // Critical
+        if (corruption >= HIGH_THRESHOLD) return 3;     // High
+        if (corruption >= MEDIUM_THRESHOLD) return 2;   // Medium
+        if (corruption >= LOW_THRESHOLD) return 1;      // Low
+        return 0;                                       // Minimal
     }
 
+    /**
+     * Check if nation's corruption is at or above a specific threshold
+     *
+     * @param nation The nation
+     * @param thresholdLevel The threshold level to check (0-4)
+     * @return True if corruption is at or above the threshold
+     */
+    public boolean isCorruptionAtOrAboveThreshold(Nation nation, int thresholdLevel) {
+        return getCorruptionThresholdLevel(nation) >= thresholdLevel;
+    }
+
+    /**
+     * Check if a nation's corruption is at critical level
+     *
+     * @param nation The nation
+     * @return True if corruption is critical
+     */
     public boolean isCorruptionCritical(Nation nation) {
-        return getCorruption(nation) >= CRITICAL_THRESHOLD;
+        return getCorruptionThresholdLevel(nation) == 4;
     }
 
-    public boolean isCorruptionCritical(Town town) {
-        return getCorruption(town) >= CRITICAL_THRESHOLD;
+    /**
+     * Get the name of the corruption threshold for display
+     *
+     * @param thresholdLevel The threshold level (0-4)
+     * @return The name of the threshold
+     */
+    public String getCorruptionThresholdName(int thresholdLevel) {
+        return switch (thresholdLevel) {
+            case 0 -> "Minimal";
+            case 1 -> "Low";
+            case 2 -> "Medium";
+            case 3 -> "High";
+            case 4 -> "Critical";
+            default -> "Unknown";
+        };
     }
 
     /**
@@ -105,10 +132,17 @@ public class CorruptionManager {
      * @return The taxation modifier (0.0 to 1.0 representing 0-100%)
      */
     public double getTaxationModifier(Nation nation) {
-        double corruption = getCorruption(nation);
-        // At 0% corruption, no effect
-        // At 100% corruption, +20% max taxation
-        return 1.0 + (corruption / 100.0 * 0.2);
+        int thresholdLevel = getCorruptionThresholdLevel(nation);
+
+        // Increasing effects based on threshold
+        return switch (thresholdLevel) {
+            case 0 -> 1.0;             // No effect
+            case 1 -> 1.05;            // +5% max taxation
+            case 2 -> 1.10;            // +10% max taxation
+            case 3 -> 1.15;            // +15% max taxation
+            case 4 -> 1.20;            // +20% max taxation
+            default -> 1.0;
+        };
     }
 
     /**
@@ -119,10 +153,16 @@ public class CorruptionManager {
      * @return The PP gain modifier (0.0 to 1.0)
      */
     public double getPoliticalPowerModifier(Nation nation) {
-        double corruption = getCorruption(nation);
-        // At 0% corruption, no effect
-        // At 100% corruption, -35% political power gain
-        return 1.0 - (corruption / 100.0 * 0.35);
+        int thresholdLevel = getCorruptionThresholdLevel(nation);
+
+        // Only medium+ corruption affects PP gain
+        return switch (thresholdLevel) {
+            case 0, 1 -> 1.0;          // No effect for minimal/low
+            case 2 -> 0.90;            // -10% PP gain
+            case 3 -> 0.75;            // -25% PP gain
+            case 4 -> 0.50;            // -50% PP gain
+            default -> 1.0;
+        };
     }
 
     /**
@@ -133,10 +173,17 @@ public class CorruptionManager {
      * @return The resource modifier (0.0 to 1.0)
      */
     public double getResourceModifier(Nation nation) {
-        double corruption = getCorruption(nation);
-        // At 0% corruption, no effect
-        // At 100% corruption, -25% resource output
-        return 1.0 - (corruption / 100.0 * 0.25);
+        int thresholdLevel = getCorruptionThresholdLevel(nation);
+
+        // Decreasing output at each threshold
+        return switch (thresholdLevel) {
+            case 0 -> 1.0;             // No effect
+            case 1 -> 0.95;            // -5% resource output
+            case 2 -> 0.85;            // -15% resource output
+            case 3 -> 0.75;            // -25% resource output
+            case 4 -> 0.60;            // -40% resource output
+            default -> 1.0;
+        };
     }
 
     /**
@@ -147,10 +194,17 @@ public class CorruptionManager {
      * @return The spending modifier (1.0 or higher)
      */
     public double getSpendingModifier(Nation nation) {
-        double corruption = getCorruption(nation);
-        // At 0% corruption, no effect
-        // At 100% corruption, +40% spending
-        return 1.0 + (corruption / 100.0 * 0.4);
+        int thresholdLevel = getCorruptionThresholdLevel(nation);
+
+        // Increasing costs at each threshold
+        return switch (thresholdLevel) {
+            case 0 -> 1.0;             // No effect
+            case 1 -> 1.10;            // +10% spending
+            case 2 -> 1.20;            // +20% spending
+            case 3 -> 1.30;            // +30% spending
+            case 4 -> 1.50;            // +50% spending
+            default -> 1.0;
+        };
     }
 
     /**
@@ -200,40 +254,88 @@ public class CorruptionManager {
     public void processNewDay() {
         plugin.getTownyAPI().getNations().forEach(nation -> {
             double gain = calculateDailyCorruptionGain(nation);
+
+            // Store old threshold level
+            int oldThresholdLevel = getCorruptionThresholdLevel(nation);
+
+            // Add corruption
             addCorruption(nation, gain);
+
+            // Get new threshold level
+            int newThresholdLevel = getCorruptionThresholdLevel(nation);
+            double currentCorruption = getCorruption(nation);
+
             plugin.getLogger().info("Nation " + nation.getName() + " gained " +
                     String.format("%.2f", gain) + " corruption, now at " +
-                    String.format("%.2f", getCorruption(nation)) + "%");
+                    String.format("%.2f", currentCorruption) + "% (" +
+                    getCorruptionThresholdName(newThresholdLevel) + ")");
 
-            // Apply additional effects if corruption is at critical level
-            if (isCorruptionCritical(nation)) {
-                applyCorruptionEffects(nation);
-            }
+            // Apply threshold-based effects
+            applyThresholdEffects(nation, oldThresholdLevel, newThresholdLevel);
         });
     }
 
     /**
-     * Apply negative effects when corruption reaches critical levels
+     * Apply effects based on corruption threshold level
      *
      * @param nation The nation
+     * @param oldLevel Previous corruption threshold level
+     * @param newLevel Current corruption threshold level
      */
-    private void applyCorruptionEffects(Nation nation) {
-        // Implement critical corruption effects here
-        // Examples:
-        // - Reduce political power by 5%
-        // - Notify nation that corruption is critical
-        // - Apply debuffs to nation members
+    private void applyThresholdEffects(Nation nation, int oldLevel, int newLevel) {
+        // If threshold level increased, notify and apply immediate effects
+        if (newLevel > oldLevel) {
+            String newLevelName = getCorruptionThresholdName(newLevel);
 
-        // For now, just reduce political power
+            // Log the threshold change
+            plugin.getLogger().info("Nation " + nation.getName() +
+                    " corruption increased to " + newLevelName + " level!");
+
+            // Apply effects based on new threshold level
+            applyCorruptionEffects(nation, newLevel);
+        }
+        // Always apply daily effects for high/critical corruption
+        else if (newLevel >= 3) {
+            applyCorruptionEffects(nation, newLevel);
+        }
+    }
+
+    /**
+     * Apply negative effects based on corruption threshold level
+     *
+     * @param nation The nation
+     * @param thresholdLevel Current corruption threshold level (0-4)
+     */
+    private void applyCorruptionEffects(Nation nation, int thresholdLevel) {
         PoliticalPowerManager ppManager = plugin.getPPManager();
         double currentPP = ppManager.getPoliticalPower(nation);
-        double reduction = currentPP * 0.05; // 5% reduction
+        double reduction = 0;
 
+        // Apply effects based on threshold level
+        switch (thresholdLevel) {
+            case 3: // High corruption
+                // 2.5% political power reduction
+                reduction = currentPP * 0.025;
+                break;
+
+            case 4: // Critical corruption
+                // 5% political power reduction
+                reduction = currentPP * 0.05;
+
+                // Additional critical effects could go here
+                // - Random event chance
+                // - Possible revolts
+                // - Blocked certain actions
+                break;
+        }
+
+        // Apply political power reduction if any
         if (reduction > 0) {
             ppManager.removePoliticalPower(nation, reduction);
             plugin.getLogger().info("Nation " + nation.getName() +
                     " lost " + String.format("%.2f", reduction) +
-                    " political power due to critical corruption levels");
+                    " political power due to " + getCorruptionThresholdName(thresholdLevel) +
+                    " corruption levels");
         }
     }
 
