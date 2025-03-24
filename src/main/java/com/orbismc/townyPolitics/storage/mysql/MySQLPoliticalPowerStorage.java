@@ -2,6 +2,7 @@ package com.orbismc.townyPolitics.storage.mysql;
 
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.storage.IPoliticalPowerStorage;
+import com.orbismc.townyPolitics.DatabaseManager;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
