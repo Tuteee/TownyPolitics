@@ -1,10 +1,12 @@
 package com.orbismc.townyPolitics;
 
+import com.orbismc.townyPolitics.TownyPolitics;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class DatabaseManager {
