@@ -6,8 +6,10 @@ import com.palmergames.bukkit.towny.TownyCommandAddonAPI.CommandType;
 import com.orbismc.townyPolitics.commands.GovernmentCommand;
 import com.orbismc.townyPolitics.commands.OverviewCommand;
 import com.orbismc.townyPolitics.commands.TownyAdminPoliticsCommand;
+import com.orbismc.townyPolitics.commands.CorruptionCommand;
+import com.orbismc.townyPolitics.commands.PoliticalPowerCommand;
+import com.orbismc.townyPolitics.commands.TestEmbezzlementCommand;
 import com.orbismc.townyPolitics.hooks.TransactionEmbezzlementHandler;
-import com.orbismc.townyPolitics.hooks.PostTransactionEmbezzlementHandler;
 import com.orbismc.townyPolitics.hooks.DiagnosticTransactionHandler;
 import com.orbismc.townyPolitics.listeners.TownyEventListener;
 import com.orbismc.townyPolitics.managers.GovernmentManager;
@@ -62,17 +64,12 @@ public class TownyPolitics extends JavaPlugin {
         eventListener = new TownyEventListener(this, ppManager, corruptionManager);
         getServer().getPluginManager().registerEvents(eventListener, this);
 
-        // Register transaction embezzlement handler
+        // Register improved transaction embezzlement handler
         TransactionEmbezzlementHandler embezzlementHandler = new TransactionEmbezzlementHandler(this);
         getServer().getPluginManager().registerEvents(embezzlementHandler, this);
-        getLogger().info("Registered Transaction Embezzlement Handler");
+        getLogger().info("Registered Improved Transaction Embezzlement Handler");
 
-        // Register post-transaction embezzlement handler
-        PostTransactionEmbezzlementHandler postEmbezzlementHandler = new PostTransactionEmbezzlementHandler(this);
-        getServer().getPluginManager().registerEvents(postEmbezzlementHandler, this);
-        getLogger().info("Registered Post-Transaction Embezzlement Handler");
-
-        // Register diagnostic handler
+        // Keep the diagnostic handler if you want to see events for debugging
         DiagnosticTransactionHandler diagnosticHandler = new DiagnosticTransactionHandler(this);
         getServer().getPluginManager().registerEvents(diagnosticHandler, this);
         getLogger().info("Registered Diagnostic Transaction Handler");
@@ -126,6 +123,8 @@ public class TownyPolitics extends JavaPlugin {
             GovernmentCommand townGovCommand = new GovernmentCommand(this, govManager, "town");
             GovernmentCommand nationGovCommand = new GovernmentCommand(this, govManager, "nation");
             OverviewCommand overviewCommand = new OverviewCommand(this, govManager, ppManager, corruptionManager);
+            CorruptionCommand corruptionCommand = new CorruptionCommand(this, corruptionManager, ppManager);
+            PoliticalPowerCommand ppCommand = new PoliticalPowerCommand(this, ppManager);
 
             // Register town commands
             TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "government", townGovCommand);
@@ -136,9 +135,16 @@ public class TownyPolitics extends JavaPlugin {
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "gov", nationGovCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "overview", overviewCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "o", overviewCommand);
+            TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "corruption", corruptionCommand);
+            TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "pp", ppCommand);
 
             // Register TownyAdmin command
             new TownyAdminPoliticsCommand(this, govManager, ppManager, corruptionManager);
+
+            // Register test command for embezzlement
+            TestEmbezzlementCommand testEmbezzlementCommand = new TestEmbezzlementCommand(this);
+            this.getCommand("taxtest").setExecutor(testEmbezzlementCommand);
+            getLogger().info("Registered tax testing command");
 
             getLogger().info("Successfully registered all commands.");
         } catch (Exception e) {

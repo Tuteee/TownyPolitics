@@ -22,6 +22,8 @@ government:
   # Time it takes to switch governments after the first switch (in days)
   switch_time: 7
 
+# Update this section in your config.yml
+
 # Corruption Settings
 corruption:
   # Base daily corruption gain for all nations
@@ -33,6 +35,17 @@ corruption:
     medium: 50.0    # Medium corruption threshold
     high: 75.0      # High corruption threshold
     critical: 90.0  # Critical corruption threshold
+
+  # Embezzlement rates for tax income (% of taxes embezzled)
+  embezzlement:
+    low: 0.05        # 5% of tax revenue lost
+    medium: 0.15     # 15% of tax revenue lost
+    high: 0.30       # 30% of tax revenue lost
+    critical: 0.60   # 60% of tax revenue lost
+
+  # Tax collection notifications
+  notifications:
+    embezzlement_message: true  # Show embezzlement messages in nation chat
 
   # Effects of corruption thresholds
   effects:

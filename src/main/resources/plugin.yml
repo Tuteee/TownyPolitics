@@ -6,6 +6,12 @@ depend: [Towny, Vault]
 description: A political addon for Towny with government types and political power
 author: InjurynSickness
 
+commands:
+  taxtest:
+    description: Test the tax embezzlement system
+    usage: /taxtest <town> <amount>
+    permission: townypolitics.admin
+
 permissions:
   townypolitics.admin:
     description: Allows access to all administrative commands
