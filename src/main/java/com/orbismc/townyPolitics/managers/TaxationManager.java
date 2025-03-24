@@ -12,10 +12,6 @@ public class TaxationManager {
     private final TownyPolitics plugin;
     private final CorruptionManager corruptionManager;
 
-    // Values from config.yml
-    private static final double DEFAULT_MAX_TAX_PERCENT = 0.0;
-    private static final double DEFAULT_MAX_TAX_AMOUNT = 10000.0;
-
     public TaxationManager(TownyPolitics plugin, CorruptionManager corruptionManager) {
         this.plugin = plugin;
         this.corruptionManager = corruptionManager;
@@ -29,14 +25,24 @@ public class TaxationManager {
      * @return The modified maximum tax rate
      */
     public double getModifiedMaxTaxRate(Town town, boolean isPercentage) {
-        // Get base max tax - using values from Towny config
+        // Get base max tax from Towny config
         double baseTaxRate;
         if (isPercentage) {
-            // Use percentage value if configured, otherwise use default
-            baseTaxRate = DEFAULT_MAX_TAX_PERCENT > 0 ?
-                    DEFAULT_MAX_TAX_PERCENT : 25.0; // Fallback to 25% if not set
+            // Read max_town_tax_percent from config
+            baseTaxRate = Double.parseDouble(plugin.getConfig().getString("daily_taxes.max_town_tax_percent", "2"));
+
+            // If the value is 0, use a default percentage
+            if (baseTaxRate <= 0) {
+                baseTaxRate = 25.0; // Fallback to 25% if not set or set to 0
+            }
         } else {
-            baseTaxRate = DEFAULT_MAX_TAX_AMOUNT;
+            // Read max_town_tax_amount from config
+            baseTaxRate = Double.parseDouble(plugin.getConfig().getString("daily_taxes.max_town_tax_amount", "0"));
+
+            // If the value is 0, use a reasonable default
+            if (baseTaxRate <= 0) {
+                baseTaxRate = 1000.0; // Default flat tax amount
+            }
         }
 
         // If town doesn't have a nation, return default
@@ -55,7 +61,7 @@ public class TaxationManager {
 
         // Apply nation's corruption modifier
         double taxModifier = corruptionManager.getTaxationModifier(nation);
-        double modifiedMaxTax = baseTaxRate * (1 + taxModifier);
+        double modifiedMaxTax = baseTaxRate * taxModifier;
 
         // Enforce minimum of 0
         return Math.max(0, modifiedMaxTax);
@@ -68,7 +74,13 @@ public class TaxationManager {
      * @return The modified maximum tax amount
      */
     public double getModifiedMaxTaxPercentAmount(Town town) {
-        double baseMaxAmount = DEFAULT_MAX_TAX_AMOUNT;
+        // Read max_town_tax_percent_amount from config
+        double baseMaxAmount = Double.parseDouble(plugin.getConfig().getString("daily_taxes.max_town_tax_percent_amount", "100"));
+
+        // If the value is 0, use a reasonable default
+        if (baseMaxAmount <= 0) {
+            baseMaxAmount = 1000.0; // Default max amount
+        }
 
         // If town doesn't have a nation, return default
         if (!town.hasNation()) {
@@ -82,7 +94,7 @@ public class TaxationManager {
 
             // Apply nation's corruption modifier
             double taxModifier = corruptionManager.getTaxationModifier(nation);
-            double modifiedMaxAmount = baseMaxAmount * (1 + taxModifier);
+            double modifiedMaxAmount = baseMaxAmount * taxModifier;
 
             // Enforce minimum of 0
             return Math.max(0, modifiedMaxAmount);
@@ -121,7 +133,7 @@ public class TaxationManager {
         Nation nation;
         try {
             nation = town.getNation();
-            return 1.0 + corruptionManager.getTaxationModifier(nation);
+            return corruptionManager.getTaxationModifier(nation);
         } catch (Exception e) {
             plugin.getLogger().warning("Error getting tax modifier: " + e.getMessage());
             return 1.0;

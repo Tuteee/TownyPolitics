@@ -85,16 +85,16 @@ public class TownyTaxHook implements Listener {
 
                 // Inform player about the corruption-based limit
                 double corruptionModifier = corruptionManager.getTaxationModifier(nation);
-                String modifierStr = String.format("%+.1f%%", corruptionModifier * 100);
+                String modifierStr = String.format("%+.1f%%", (corruptionModifier - 1.0) * 100);
 
-                if (corruptionModifier > 0) {
+                if (corruptionModifier > 1.0) {
                     // Positive modifier - tax limit increased
                     sender.sendMessage(
                             ChatColor.YELLOW + "Your nation's corruption has increased the maximum tax to " +
                                     String.format("%.2f%s", modifiedTaxLimit, isTaxPercentage ? "%" : "") +
                                     " (" + modifierStr + " modifier)"
                     );
-                } else if (corruptionModifier < 0) {
+                } else if (corruptionModifier < 1.0) {
                     // Negative modifier - tax limit decreased
                     sender.sendMessage(
                             ChatColor.RED + "Your nation's corruption has decreased the maximum tax to " +
@@ -111,7 +111,7 @@ public class TownyTaxHook implements Listener {
             }
 
             // For percentage taxes, also check the max tax amount cap
-            if (isTaxPercentage && town.isTaxPercentage()) {
+            if (isTaxPercentage) {
                 double modifiedMaxAmount = taxationManager.getModifiedMaxTaxPercentAmount(town);
 
                 // We're not canceling for this, just informing
