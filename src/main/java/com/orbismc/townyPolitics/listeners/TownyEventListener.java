@@ -255,13 +255,14 @@ public class TownyEventListener implements Listener {
      * @param town The town
      */
     private void addTownCorruptionComponent(TownStatusScreenEvent event, Town town) {
-        double corruption = corruptionManager.getCorruption(town);
+        double corruption = 0.0;
 
         // Determine text color based on corruption level
         NamedTextColor corruptColor;
         if (corruption >= 75) corruptColor = NamedTextColor.DARK_RED;
         else if (corruption >= 50) corruptColor = NamedTextColor.RED;
-        else if (corruption >= 25) corruptColor = NamedTextColor.GOLD;
+        else if (corruption >= 25) corruptColor = NamedTextColor.YELLOW;
+        else if (corruption == 0) corruptColor  = NamedTextColor.GREEN;
         else corruptColor = NamedTextColor.GREEN;
 
         // Create hover text component
@@ -309,7 +310,7 @@ public class TownyEventListener implements Listener {
 
         // Create the Government component
         Component openBracket = Component.text("[").color(NamedTextColor.GRAY);
-        Component govText = Component.text("Government").color(NamedTextColor.GOLD);
+        Component govText = Component.text("Government").color(NamedTextColor.GREEN);
         Component closeBracket = Component.text("]").color(NamedTextColor.GRAY);
 
         Component govComponent = Component.empty()

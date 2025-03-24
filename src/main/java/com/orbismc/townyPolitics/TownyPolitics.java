@@ -6,11 +6,12 @@ import com.palmergames.bukkit.towny.TownyCommandAddonAPI.CommandType;
 import com.orbismc.townyPolitics.commands.GovernmentCommand;
 import com.orbismc.townyPolitics.commands.OverviewCommand;
 import com.orbismc.townyPolitics.commands.TownyAdminPoliticsCommand;
-import com.orbismc.townyPolitics.commands.CorruptionCommand;
+import com.orbismc.townyPolitics.hooks.TownyTaxHook;
 import com.orbismc.townyPolitics.listeners.TownyEventListener;
 import com.orbismc.townyPolitics.managers.GovernmentManager;
 import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
 import com.orbismc.townyPolitics.managers.CorruptionManager;
+import com.orbismc.townyPolitics.managers.TaxationManager;
 import com.orbismc.townyPolitics.storage.GovernmentStorage;
 import com.orbismc.townyPolitics.storage.PoliticalPowerStorage;
 import com.orbismc.townyPolitics.storage.CorruptionStorage;
@@ -26,6 +27,7 @@ public class TownyPolitics extends JavaPlugin {
     private GovernmentStorage govStorage;
     private CorruptionManager corruptionManager;
     private CorruptionStorage corruptionStorage;
+    private TaxationManager taxationManager;
     private TownyEventListener eventListener;
 
     @Override
@@ -51,9 +53,17 @@ public class TownyPolitics extends JavaPlugin {
         // Initialize corruption manager (needs govManager)
         corruptionManager = new CorruptionManager(this, corruptionStorage, govManager);
 
+        // Initialize taxation manager (depends on corruption manager)
+        taxationManager = new TaxationManager(this, corruptionManager);
+
         // Initialize and register listener
         eventListener = new TownyEventListener(this, ppManager, corruptionManager);
         getServer().getPluginManager().registerEvents(eventListener, this);
+
+        // Register Towny hooks
+        TownyTaxHook taxHook = new TownyTaxHook(this);
+        getServer().getPluginManager().registerEvents(taxHook, this);
+        getLogger().info("Registered Towny taxation hooks.");
 
         // Connect listener and manager (circular reference)
         ppManager.setEventListener(eventListener);
@@ -104,7 +114,6 @@ public class TownyPolitics extends JavaPlugin {
             GovernmentCommand townGovCommand = new GovernmentCommand(this, govManager, "town");
             GovernmentCommand nationGovCommand = new GovernmentCommand(this, govManager, "nation");
             OverviewCommand overviewCommand = new OverviewCommand(this, govManager, ppManager, corruptionManager);
-            CorruptionCommand corruptionCommand = new CorruptionCommand(this, corruptionManager, ppManager);
 
             // Register town commands
             TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "government", townGovCommand);
@@ -115,8 +124,6 @@ public class TownyPolitics extends JavaPlugin {
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "gov", nationGovCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "overview", overviewCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "o", overviewCommand);
-
-            // Corruption commands removed as requested
 
             // Register TownyAdmin command
             new TownyAdminPoliticsCommand(this, govManager, ppManager, corruptionManager);
@@ -142,5 +149,9 @@ public class TownyPolitics extends JavaPlugin {
 
     public CorruptionManager getCorruptionManager() {
         return corruptionManager;
+    }
+
+    public TaxationManager getTaxationManager() {
+        return taxationManager;
     }
 }
