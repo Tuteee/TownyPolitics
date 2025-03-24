@@ -7,6 +7,7 @@ import com.orbismc.townyPolitics.commands.GovernmentCommand;
 import com.orbismc.townyPolitics.commands.OverviewCommand;
 import com.orbismc.townyPolitics.commands.TownyAdminPoliticsCommand;
 import com.orbismc.townyPolitics.hooks.TownyTaxTransactionHandler;
+import com.orbismc.townyPolitics.hooks.TownyNationTaxHandler;
 import com.orbismc.townyPolitics.listeners.TownyEventListener;
 import com.orbismc.townyPolitics.managers.GovernmentManager;
 import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
@@ -64,6 +65,11 @@ public class TownyPolitics extends JavaPlugin {
         TownyTaxTransactionHandler taxHandler = new TownyTaxTransactionHandler(this);
         getServer().getPluginManager().registerEvents(taxHandler, this);
         getLogger().info("Registered Towny taxation hooks.");
+
+        // Register Nation Tax Handler
+        TownyNationTaxHandler nationTaxHandler = new TownyNationTaxHandler(this);
+        getServer().getPluginManager().registerEvents(nationTaxHandler, this);
+        getLogger().info("Registered Towny nation taxation hooks.");
 
         // Connect listener and manager (circular reference)
         ppManager.setEventListener(eventListener);

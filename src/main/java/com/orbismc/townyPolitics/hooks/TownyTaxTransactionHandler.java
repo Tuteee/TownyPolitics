@@ -29,36 +29,60 @@ public class TownyTaxTransactionHandler implements Listener {
         this.plugin = plugin;
         this.corruptionManager = plugin.getCorruptionManager();
         this.townyAPI = TownyAPI.getInstance();
+        plugin.getLogger().info("TownyTaxTransactionHandler initialized");
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.LOWEST) // Changed to LOWEST to intercept before modifications
     public void onTownyTransaction(TownyPreTransactionEvent event) {
+        plugin.getLogger().info("=== Transaction event fired ===");
         Transaction transaction = event.getTransaction();
         Account receivingAccount = transaction.getReceivingAccount();
 
-        // Debug log
-        plugin.getLogger().info("Transaction intercepted: " + transaction.getAmount() +
-                " to " + (receivingAccount != null ? receivingAccount.getName() : "unknown") +
-                ", type: " + transaction.getType());
+        // Enhanced debug log
+        plugin.getLogger().info("Transaction details: Amount=" + transaction.getAmount() +
+                ", Type=" + transaction.getType() +
+                ", Receiver=" + (receivingAccount != null ? receivingAccount.getName() : "null") +
+                ", HasSender=" + transaction.hasSenderAccount());
+
+        if (transaction.hasSenderAccount()) {
+            plugin.getLogger().info("Sender account: " + transaction.getSendingAccount().getName());
+        }
 
         // We only want to modify deposits to nation accounts
-        if (transaction.getAmount() <= 0 || !isNationAccount(receivingAccount)) {
+        if (transaction.getAmount() <= 0) {
+            plugin.getLogger().info("Skipping: amount <= 0");
+            return;
+        }
+
+        if (receivingAccount == null) {
+            plugin.getLogger().info("Skipping: receiving account is null");
+            return;
+        }
+
+        boolean isNationAccount = isNationAccount(receivingAccount);
+        plugin.getLogger().info("Is nation account: " + isNationAccount);
+
+        if (!isNationAccount) {
             return;
         }
 
         // Try to get the nation object
         Nation nation = getNationFromAccount(receivingAccount);
         if (nation == null) {
-            plugin.getLogger().info("Could not find nation for account " + receivingAccount.getName());
+            plugin.getLogger().info("Skipping: could not find nation for account " + receivingAccount.getName());
             return;
         }
 
+        plugin.getLogger().info("Found nation: " + nation.getName());
+
         // Get the corruption level and calculate penalty
         double corruption = corruptionManager.getCorruption(nation);
+        plugin.getLogger().info("Nation corruption level: " + corruption + "%");
 
         // Calculate tax reduction: 5% per 1% corruption
         // At 20% corruption, tax becomes 0%
         double penaltyMultiplier = Math.max(0.0, 1.0 - (corruption * 0.05));
+        plugin.getLogger().info("Calculated penalty multiplier: " + penaltyMultiplier);
 
         // Only process if there's a penalty to apply
         if (penaltyMultiplier < 1.0) {
@@ -79,11 +103,20 @@ public class TownyTaxTransactionHandler implements Listener {
                 try {
                     // Try to modify the transaction amount using reflection
                     modifyTransactionAmount(transaction, reducedAmount);
-                    plugin.getLogger().info("Successfully modified transaction amount");
+
+                    // Verify the change took effect
+                    Field amountField = Transaction.class.getDeclaredField("amount");
+                    amountField.setAccessible(true);
+                    double newAmountCheck = (double) amountField.get(transaction);
+                    plugin.getLogger().info("Verified new amount: " + newAmountCheck);
+
+                    plugin.getLogger().info("Successfully modified transaction amount via reflection");
                 } catch (Exception e) {
                     plugin.getLogger().severe("Failed to modify transaction: " + e.getMessage());
+                    e.printStackTrace();
 
                     // Fallback: cancel this transaction and create a new one
+                    plugin.getLogger().info("Trying fallback approach: cancel and deposit");
                     event.setCancelled(true);
 
                     try {
@@ -96,6 +129,7 @@ public class TownyTaxTransactionHandler implements Listener {
                         }
                     } catch (Exception ex) {
                         plugin.getLogger().severe("Error in fallback deposit: " + ex.getMessage());
+                        ex.printStackTrace();
                     }
                 }
             } else {
@@ -103,7 +137,11 @@ public class TownyTaxTransactionHandler implements Listener {
                 event.setCancelled(true);
                 plugin.getLogger().info("Tax transaction cancelled due to high corruption level");
             }
+        } else {
+            plugin.getLogger().info("No penalty applied: penalty multiplier = " + penaltyMultiplier);
         }
+
+        plugin.getLogger().info("=== Transaction processing complete ===");
     }
 
     /**
@@ -114,12 +152,18 @@ public class TownyTaxTransactionHandler implements Listener {
      * @throws Exception If reflection fails
      */
     private void modifyTransactionAmount(Transaction transaction, double newAmount) throws Exception {
+        plugin.getLogger().info("Attempting to modify transaction amount via reflection");
+
         // Get the amount field by reflection
         Field amountField = Transaction.class.getDeclaredField("amount");
+        plugin.getLogger().info("Found amount field: " + amountField);
+
         amountField.setAccessible(true);
+        plugin.getLogger().info("Set field accessible");
 
         // Update the amount
         amountField.set(transaction, newAmount);
+        plugin.getLogger().info("Set new amount: " + newAmount);
     }
 
     /**
@@ -136,17 +180,23 @@ public class TownyTaxTransactionHandler implements Listener {
         if (name == null) return false;
 
         // Log for debugging
-        plugin.getLogger().info("Checking account: " + name);
+        plugin.getLogger().info("Checking if account is nation account: " + name);
 
         // Try getting UUID - TownyEconomy method
         UUID uuid = TownyEconomyHandler.getTownyObjectUUID(name);
+        plugin.getLogger().info("Account UUID from TownyEconomyHandler: " + uuid);
+
         if (uuid != null) {
             Nation nation = townyAPI.getNation(uuid);
-            return nation != null;
+            boolean isNation = nation != null;
+            plugin.getLogger().info("Nation found by UUID: " + isNation);
+            return isNation;
         }
 
         // Fallback check - pattern matching
-        return name.toLowerCase().startsWith("nation-");
+        boolean matchesPattern = name.toLowerCase().startsWith("nation-");
+        plugin.getLogger().info("Account name matches 'nation-' pattern: " + matchesPattern);
+        return matchesPattern;
     }
 
     /**
@@ -161,11 +211,16 @@ public class TownyTaxTransactionHandler implements Listener {
         String name = account.getName();
         if (name == null) return null;
 
+        plugin.getLogger().info("Getting nation from account: " + name);
+
         // First try using Towny UUID method
         UUID uuid = TownyEconomyHandler.getTownyObjectUUID(name);
+        plugin.getLogger().info("Account UUID: " + uuid);
+
         if (uuid != null) {
             Nation nation = townyAPI.getNation(uuid);
             if (nation != null) {
+                plugin.getLogger().info("Found nation by UUID: " + nation.getName());
                 return nation;
             }
         }
@@ -173,9 +228,17 @@ public class TownyTaxTransactionHandler implements Listener {
         // Fallback to name-based lookup
         if (name.toLowerCase().startsWith("nation-")) {
             String nationName = name.substring(7); // Remove "nation-" prefix
-            return townyAPI.getNation(nationName);
+            plugin.getLogger().info("Trying name-based lookup for: " + nationName);
+            Nation nation = townyAPI.getNation(nationName);
+            if (nation != null) {
+                plugin.getLogger().info("Found nation by name: " + nation.getName());
+            } else {
+                plugin.getLogger().info("Nation not found by name");
+            }
+            return nation;
         }
 
+        plugin.getLogger().info("Could not find any nation for this account");
         return null;
     }
 }
