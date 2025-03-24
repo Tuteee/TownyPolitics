@@ -15,6 +15,7 @@ import com.orbismc.townyPolitics.managers.CorruptionManager;
 import com.palmergames.adventure.text.Component;
 import com.palmergames.adventure.text.format.NamedTextColor;
 import com.palmergames.adventure.text.event.HoverEvent;
+import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -189,7 +190,7 @@ public class TownyEventListener implements Listener {
      */
     private void addCorruptionComponent(NationStatusScreenEvent event, Nation nation) {
         double corruption = corruptionManager.getCorruption(nation);
-        double dailyGain = corruptionManager.calculateDailyCorruptionGain(nation);
+        double dailyCorruptionGain = corruptionManager.calculateDailyCorruptionGain(nation);
 
         // Get modifiers
         double taxMod = corruptionManager.getTaxationModifier(nation);
@@ -230,8 +231,27 @@ public class TownyEventListener implements Listener {
                 .append(Component.text("Current Level: " + String.format("%.1f%%", corruption))
                         .color(corruptColor))
                 .append(Component.newline())
-                .append(Component.text("Daily Change: +" + String.format("%.2f%%", dailyGain))
-                        .color(NamedTextColor.RED));
+                .append(Component.text("Daily Change: +" + String.format("%.2f%%", dailyCorruptionGain))
+                        .color(NamedTextColor.RED))
+                .append(Component.newline())
+                .append(Component.newline())
+                .append(Component.text("Effects:")
+                        .color(NamedTextColor.YELLOW))
+                .append(Component.newline())
+                .append(Component.text("• Tax Collection: " + String.format("%+.1f%%", -corruption * 5))
+                        .color(NamedTextColor.RED))
+                .append(Component.newline())
+                .append(Component.text("• Max Taxation: " + taxModStr)
+                        .color(getTextColorForValue(taxMod - 1.0)))
+                .append(Component.newline())
+                .append(Component.text("• Political Power Gain: " + ppModStr)
+                        .color(getTextColorForValue(ppMod - 1.0)))
+                .append(Component.newline())
+                .append(Component.text("• Resource Output: " + resourceModStr)
+                        .color(getTextColorForValue(resourceMod - 1.0)))
+                .append(Component.newline())
+                .append(Component.text("• Spending Costs: " + spendingModStr)
+                        .color(getTextColorForValue(spendingMod - 1.0)));
 
         // Create the Corruption component
         Component openBracket = Component.text("[").color(NamedTextColor.GRAY);
@@ -275,7 +295,7 @@ public class TownyEventListener implements Listener {
 
         // Create the Corruption component
         Component openBracket = Component.text("[").color(NamedTextColor.GRAY);
-        Component corruptText = Component.text("Corruption").color(corruptColor);
+        Component corruptText = Component.text("Corruption").color(NamedTextColor.GREEN);
         Component closeBracket = Component.text("]").color(NamedTextColor.GRAY);
 
         Component corruptComponent = Component.empty()
@@ -321,5 +341,21 @@ public class TownyEventListener implements Listener {
 
         // Add to status screen
         event.getStatusScreen().addComponentOf("government_display", govComponent);
+    }
+
+    private ChatColor getColorForModifier(double modifier) {
+        if (modifier > 1.0) return ChatColor.RED;
+        if (modifier < 1.0) return ChatColor.RED;
+        return ChatColor.GREEN;
+    }
+
+    /**
+     * Get appropriate text color for a value
+     * @param value The value to check
+     * @return Appropriate color (RED for negative, GREEN for positive or zero)
+     */
+    private NamedTextColor getTextColorForValue(double value) {
+        if (value < 0) return NamedTextColor.RED;
+        return NamedTextColor.GREEN;
     }
 }

@@ -6,7 +6,7 @@ import com.palmergames.bukkit.towny.TownyCommandAddonAPI.CommandType;
 import com.orbismc.townyPolitics.commands.GovernmentCommand;
 import com.orbismc.townyPolitics.commands.OverviewCommand;
 import com.orbismc.townyPolitics.commands.TownyAdminPoliticsCommand;
-import com.orbismc.townyPolitics.hooks.TownyTaxHook;
+import com.orbismc.townyPolitics.hooks.TownyTaxTransactionHandler;
 import com.orbismc.townyPolitics.listeners.TownyEventListener;
 import com.orbismc.townyPolitics.managers.GovernmentManager;
 import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
@@ -61,8 +61,8 @@ public class TownyPolitics extends JavaPlugin {
         getServer().getPluginManager().registerEvents(eventListener, this);
 
         // Register Towny hooks
-        TownyTaxHook taxHook = new TownyTaxHook(this);
-        getServer().getPluginManager().registerEvents(taxHook, this);
+        TownyTaxTransactionHandler taxHandler = new TownyTaxTransactionHandler(this);
+        getServer().getPluginManager().registerEvents(taxHandler, this);
         getLogger().info("Registered Towny taxation hooks.");
 
         // Connect listener and manager (circular reference)
