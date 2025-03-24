@@ -7,6 +7,7 @@ import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.government.GovernmentType;
 import com.orbismc.townyPolitics.managers.GovernmentManager;
 import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
+import com.orbismc.townyPolitics.managers.CorruptionManager;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -19,12 +20,14 @@ public class OverviewCommand implements CommandExecutor {
     private final TownyPolitics plugin;
     private final GovernmentManager govManager;
     private final PoliticalPowerManager ppManager;
+    private final CorruptionManager corruptionManager;
     private final TownyAPI townyAPI;
 
-    public OverviewCommand(TownyPolitics plugin, GovernmentManager govManager, PoliticalPowerManager ppManager) {
+    public OverviewCommand(TownyPolitics plugin, GovernmentManager govManager, PoliticalPowerManager ppManager, CorruptionManager corruptionManager) {
         this.plugin = plugin;
         this.govManager = govManager;
         this.ppManager = ppManager;
+        this.corruptionManager = corruptionManager;
         this.townyAPI = TownyAPI.getInstance();
     }
 
@@ -73,6 +76,11 @@ public class OverviewCommand implements CommandExecutor {
         double pp = ppManager.getPoliticalPower(nation);
         double dailyGain = ppManager.calculateDailyPPGain(nation);
 
+        // Get corruption
+        double corruption = corruptionManager.getCorruption(nation);
+        double corruptionGain = corruptionManager.calculateDailyCorruptionGain(nation);
+        boolean isCritical = corruptionManager.isCorruptionCritical(nation);
+
         // Display overview with custom header
         player.sendMessage(ChatColor.GOLD + ".oOo.________.[" + ChatColor.YELLOW + " " + nation.getName() + "'s Political Overview " + ChatColor.GOLD + "].________.oOo.");
 
@@ -92,5 +100,27 @@ public class OverviewCommand implements CommandExecutor {
         // Political Power section
         player.sendMessage(ChatColor.DARK_GREEN + "Political Power: " + ChatColor.GREEN + String.format("%.2f", pp));
         player.sendMessage(ChatColor.DARK_GREEN + "Daily Political Power Gain: " + ChatColor.GREEN + String.format("+%.2f", dailyGain));
+
+        // Corruption section
+        ChatColor corruptColor;
+        if (corruption >= 75) corruptColor = ChatColor.DARK_RED;
+        else if (corruption >= 50) corruptColor = ChatColor.RED;
+        else if (corruption <= 25) corruptColor = ChatColor.YELLOW;
+        else corruptColor = ChatColor.DARK_RED;
+
+        player.sendMessage(ChatColor.RED + "Corruption Level: " + corruptColor + String.format("%.1f%%", corruption));
+        player.sendMessage(ChatColor.RED + "Daily Corruption Gain: " + ChatColor.RED + String.format("+%.2f%%", corruptionGain));
+    }
+
+    private String formatModifier(double modifier) {
+        String formattedValue = String.format("%+.1f%%", (modifier - 1.0) * 100);
+
+        if (modifier > 1.0) {
+            return ChatColor.RED + formattedValue;
+        } else if (modifier < 1.0) {
+            return ChatColor.RED + formattedValue;
+        } else {
+            return ChatColor.GREEN + "0%";
+        }
     }
 }

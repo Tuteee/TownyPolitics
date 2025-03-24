@@ -11,6 +11,7 @@ import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.government.GovernmentType;
 import com.orbismc.townyPolitics.managers.GovernmentManager;
 import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
+import com.orbismc.townyPolitics.managers.CorruptionManager;
 import com.palmergames.adventure.text.Component;
 import com.palmergames.adventure.text.format.NamedTextColor;
 import com.palmergames.adventure.text.event.HoverEvent;
@@ -23,22 +24,26 @@ public class TownyEventListener implements Listener {
     private final TownyPolitics plugin;
     private final PoliticalPowerManager ppManager;
     private final GovernmentManager govManager;
+    private final CorruptionManager corruptionManager;
 
     private static final String STORAGE_KEY = "townypolitics_storage";
     private static final String POLITICAL_POWER_KEY = "political_power";
     private static final String GOVERNMENT_KEY = "government_type";
+    private static final String CORRUPTION_KEY = "corruption";
 
-    public TownyEventListener(TownyPolitics plugin, PoliticalPowerManager ppManager) {
+    public TownyEventListener(TownyPolitics plugin, PoliticalPowerManager ppManager, CorruptionManager corruptionManager) {
         this.plugin = plugin;
         this.ppManager = ppManager;
         this.govManager = plugin.getGovManager();
+        this.corruptionManager = corruptionManager;
     }
 
     @EventHandler
     public void onNewDay(NewDayEvent event) {
-        plugin.getLogger().info("Processing new day for political power distribution...");
+        plugin.getLogger().info("Processing new day for political power and corruption...");
         ppManager.processNewDay();
-        plugin.getLogger().info("Political power distribution complete.");
+        corruptionManager.processNewDay();
+        plugin.getLogger().info("Political power and corruption processing complete.");
     }
 
     public void updateNationPoliticalPowerMetadata(Nation nation) {
@@ -78,6 +83,9 @@ public class TownyEventListener implements Listener {
             // Add Government Type component
             addGovernmentComponent(event, nation);
 
+            // Add Corruption component
+            addCorruptionComponent(event, nation);
+
         } catch (Exception e) {
             plugin.getLogger().warning("Error adding components to nation status screen: " + e.getMessage());
             e.printStackTrace();
@@ -91,6 +99,9 @@ public class TownyEventListener implements Listener {
 
             // Add Government Type component for towns
             addTownGovernmentComponent(event, town);
+
+            // Add Town Corruption component
+            addTownCorruptionComponent(event, town);
 
         } catch (Exception e) {
             plugin.getLogger().warning("Error adding components to town status screen: " + e.getMessage());
@@ -171,6 +182,113 @@ public class TownyEventListener implements Listener {
 
         // Add to status screen
         event.getStatusScreen().addComponentOf("government_display", govComponent);
+    }
+
+    /**
+     * Add corruption component to nation status screen
+     *
+     * @param event The event
+     * @param nation The nation
+     */
+    private void addCorruptionComponent(NationStatusScreenEvent event, Nation nation) {
+        double corruption = corruptionManager.getCorruption(nation);
+        double dailyGain = corruptionManager.calculateDailyCorruptionGain(nation);
+
+        // Get modifiers
+        double taxMod = corruptionManager.getTaxationModifier(nation);
+        double ppMod = corruptionManager.getPoliticalPowerModifier(nation);
+        double resourceMod = corruptionManager.getResourceModifier(nation);
+        double spendingMod = corruptionManager.getSpendingModifier(nation);
+
+        // Format modifiers as percentages
+        String taxModStr = String.format("%+.1f%%", (taxMod - 1.0) * 100);
+        String ppModStr = String.format("%+.1f%%", (ppMod - 1.0) * 100);
+        String resourceModStr = String.format("%+.1f%%", (resourceMod - 1.0) * 100);
+        String spendingModStr = String.format("%+.1f%%", (spendingMod - 1.0) * 100);
+
+        // Determine text color based on corruption level
+        NamedTextColor corruptColor;
+        if (corruption >= 75) corruptColor = NamedTextColor.DARK_RED;
+        else if (corruption >= 50) corruptColor = NamedTextColor.RED;
+        else if (corruption >= 25) corruptColor = NamedTextColor.GOLD;
+        else corruptColor = NamedTextColor.GREEN;
+
+        // Create hover text component
+        Component hoverText = Component.text("Corruption Level: " + String.format("%.1f%%", corruption))
+                .color(corruptColor)
+                .append(Component.newline())
+                .append(Component.newline())
+                .append(Component.text("Daily Change: +" + String.format("%.2f%%", dailyGain))
+                        .color(NamedTextColor.RED))
+                .append(Component.newline())
+                .append(Component.text("Effects:")
+                        .color(NamedTextColor.GOLD))
+                .append(Component.newline())
+                .append(Component.text("• Max Taxation: " + taxModStr)
+                        .color(NamedTextColor.YELLOW))
+                .append(Component.newline())
+                .append(Component.text("• Political Power: " + ppModStr)
+                        .color(NamedTextColor.YELLOW))
+                .append(Component.newline())
+                .append(Component.text("• Resource Output: " + resourceModStr)
+                        .color(NamedTextColor.YELLOW))
+                .append(Component.newline())
+                .append(Component.text("• Spending: " + spendingModStr)
+                        .color(NamedTextColor.YELLOW));
+
+        // Create the Corruption component
+        Component openBracket = Component.text("[").color(NamedTextColor.GRAY);
+        Component corruptText = Component.text("Corruption").color(corruptColor);
+        Component closeBracket = Component.text("]").color(NamedTextColor.GRAY);
+
+        Component corruptComponent = Component.empty()
+                .append(openBracket)
+                .append(corruptText)
+                .append(closeBracket)
+                .hoverEvent(HoverEvent.showText(hoverText));
+
+        // Add to status screen
+        event.getStatusScreen().addComponentOf("corruption_display", corruptComponent);
+    }
+
+    /**
+     * Add corruption component to town status screen
+     *
+     * @param event The event
+     * @param town The town
+     */
+    private void addTownCorruptionComponent(TownStatusScreenEvent event, Town town) {
+        double corruption = corruptionManager.getCorruption(town);
+
+        // Determine text color based on corruption level
+        NamedTextColor corruptColor;
+        if (corruption >= 75) corruptColor = NamedTextColor.DARK_RED;
+        else if (corruption >= 50) corruptColor = NamedTextColor.RED;
+        else if (corruption >= 25) corruptColor = NamedTextColor.GOLD;
+        else corruptColor = NamedTextColor.GREEN;
+
+        // Create hover text component
+        Component hoverText = Component.text("Town Corruption: " + String.format("%.1f%%", corruption))
+                .color(corruptColor)
+                .append(Component.newline())
+                .append(Component.newline())
+                .append(Component.text("Corruption affects taxation rates, resource"))
+                .append(Component.newline())
+                .append(Component.text("production, and town costs."));
+
+        // Create the Corruption component
+        Component openBracket = Component.text("[").color(NamedTextColor.GRAY);
+        Component corruptText = Component.text("Corruption").color(corruptColor);
+        Component closeBracket = Component.text("]").color(NamedTextColor.GRAY);
+
+        Component corruptComponent = Component.empty()
+                .append(openBracket)
+                .append(corruptText)
+                .append(closeBracket)
+                .hoverEvent(HoverEvent.showText(hoverText));
+
+        // Add to status screen
+        event.getStatusScreen().addComponentOf("corruption_display", corruptComponent);
     }
 
     /**

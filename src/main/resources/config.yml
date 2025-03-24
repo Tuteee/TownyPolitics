@@ -21,3 +21,43 @@ government:
 
   # Time it takes to switch governments after the first switch (in days)
   switch_time: 7
+
+# Corruption Settings
+corruption:
+  # Base daily corruption gain for all nations/towns
+  base_daily_gain: 0.5
+
+  # Critical threshold where negative effects become severe (%)
+  critical_threshold: 75.0
+
+  # Cost rate for corruption reduction (political power per corruption point)
+  pp_cost_rate: 2.0
+
+  # Minimum corruption reduction per political power spend
+  min_reduction: 5.0
+
+  # Effects of corruption levels
+  effects:
+    # Taxation effects (% increase to max tax at 100% corruption)
+    taxation_increase: 20.0
+
+    # Political Power effects (% decrease to PP gain at 100% corruption)
+    pp_decrease: 35.0
+
+    # Resource output effects (% decrease to resource output at 100% corruption)
+    resource_decrease: 25.0
+
+    # Spending effects (% increase to all spending at 100% corruption)
+    spending_increase: 40.0
+
+  # Security spending levels to reduce corruption gain
+  security_spending:
+    level_1:
+      cost: 5.0
+      reduction: 20.0
+    level_2:
+      cost: 10.0
+      reduction: 40.0
+    level_3:
+      cost: 20.0
+      reduction: 70.0

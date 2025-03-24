@@ -6,11 +6,14 @@ import com.palmergames.bukkit.towny.TownyCommandAddonAPI.CommandType;
 import com.orbismc.townyPolitics.commands.GovernmentCommand;
 import com.orbismc.townyPolitics.commands.OverviewCommand;
 import com.orbismc.townyPolitics.commands.TownyAdminPoliticsCommand;
+import com.orbismc.townyPolitics.commands.CorruptionCommand;
 import com.orbismc.townyPolitics.listeners.TownyEventListener;
 import com.orbismc.townyPolitics.managers.GovernmentManager;
 import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
+import com.orbismc.townyPolitics.managers.CorruptionManager;
 import com.orbismc.townyPolitics.storage.GovernmentStorage;
 import com.orbismc.townyPolitics.storage.PoliticalPowerStorage;
+import com.orbismc.townyPolitics.storage.CorruptionStorage;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -21,6 +24,8 @@ public class TownyPolitics extends JavaPlugin {
     private PoliticalPowerStorage ppStorage;
     private GovernmentManager govManager;
     private GovernmentStorage govStorage;
+    private CorruptionManager corruptionManager;
+    private CorruptionStorage corruptionStorage;
     private TownyEventListener eventListener;
 
     @Override
@@ -37,13 +42,17 @@ public class TownyPolitics extends JavaPlugin {
         // Initialize storages
         ppStorage = new PoliticalPowerStorage(this);
         govStorage = new GovernmentStorage(this);
+        corruptionStorage = new CorruptionStorage(this);
 
         // Initialize managers
         ppManager = new PoliticalPowerManager(this, ppStorage);
         govManager = new GovernmentManager(this, govStorage);
 
+        // Initialize corruption manager (needs govManager)
+        corruptionManager = new CorruptionManager(this, corruptionStorage, govManager);
+
         // Initialize and register listener
-        eventListener = new TownyEventListener(this, ppManager);
+        eventListener = new TownyEventListener(this, ppManager, corruptionManager);
         getServer().getPluginManager().registerEvents(eventListener, this);
 
         // Connect listener and manager (circular reference)
@@ -67,7 +76,23 @@ public class TownyPolitics extends JavaPlugin {
         if (govStorage != null) {
             govStorage.saveAll();
         }
+        if (corruptionStorage != null) {
+            corruptionStorage.saveAll();
+        }
         getLogger().info("TownyPolitics has been disabled!");
+    }
+
+    public void reload() {
+        reloadConfig();
+        if (ppManager != null) {
+            ppManager.loadData();
+        }
+        if (govManager != null) {
+            govManager.loadData();
+        }
+        if (corruptionManager != null) {
+            corruptionManager.loadData();
+        }
     }
 
     /**
@@ -78,7 +103,8 @@ public class TownyPolitics extends JavaPlugin {
             // Create command executors
             GovernmentCommand townGovCommand = new GovernmentCommand(this, govManager, "town");
             GovernmentCommand nationGovCommand = new GovernmentCommand(this, govManager, "nation");
-            OverviewCommand overviewCommand = new OverviewCommand(this, govManager, ppManager);
+            OverviewCommand overviewCommand = new OverviewCommand(this, govManager, ppManager, corruptionManager);
+            CorruptionCommand corruptionCommand = new CorruptionCommand(this, corruptionManager, ppManager);
 
             // Register town commands
             TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "government", townGovCommand);
@@ -90,8 +116,10 @@ public class TownyPolitics extends JavaPlugin {
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "overview", overviewCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "o", overviewCommand);
 
+            // Corruption commands removed as requested
+
             // Register TownyAdmin command
-            new TownyAdminPoliticsCommand(this, govManager, ppManager);
+            new TownyAdminPoliticsCommand(this, govManager, ppManager, corruptionManager);
 
             getLogger().info("Successfully registered all commands.");
         } catch (Exception e) {
@@ -110,5 +138,9 @@ public class TownyPolitics extends JavaPlugin {
 
     public GovernmentManager getGovManager() {
         return govManager;
+    }
+
+    public CorruptionManager getCorruptionManager() {
+        return corruptionManager;
     }
 }
