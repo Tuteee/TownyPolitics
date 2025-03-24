@@ -6,7 +6,9 @@ import com.palmergames.bukkit.towny.TownyCommandAddonAPI.CommandType;
 import com.orbismc.townyPolitics.commands.GovernmentCommand;
 import com.orbismc.townyPolitics.commands.OverviewCommand;
 import com.orbismc.townyPolitics.commands.TownyAdminPoliticsCommand;
-import com.orbismc.townyPolitics.hooks.CorruptionEmbezzlementHandler;
+import com.orbismc.townyPolitics.hooks.TransactionEmbezzlementHandler;
+import com.orbismc.townyPolitics.hooks.PostTransactionEmbezzlementHandler;
+import com.orbismc.townyPolitics.hooks.DiagnosticTransactionHandler;
 import com.orbismc.townyPolitics.listeners.TownyEventListener;
 import com.orbismc.townyPolitics.managers.GovernmentManager;
 import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
@@ -60,10 +62,20 @@ public class TownyPolitics extends JavaPlugin {
         eventListener = new TownyEventListener(this, ppManager, corruptionManager);
         getServer().getPluginManager().registerEvents(eventListener, this);
 
-        // Register Corruption Embezzlement Handler
-        CorruptionEmbezzlementHandler embezzlementHandler = new CorruptionEmbezzlementHandler(this);
+        // Register transaction embezzlement handler
+        TransactionEmbezzlementHandler embezzlementHandler = new TransactionEmbezzlementHandler(this);
         getServer().getPluginManager().registerEvents(embezzlementHandler, this);
-        getLogger().info("Registered Corruption Embezzlement Handler.");
+        getLogger().info("Registered Transaction Embezzlement Handler");
+
+        // Register post-transaction embezzlement handler
+        PostTransactionEmbezzlementHandler postEmbezzlementHandler = new PostTransactionEmbezzlementHandler(this);
+        getServer().getPluginManager().registerEvents(postEmbezzlementHandler, this);
+        getLogger().info("Registered Post-Transaction Embezzlement Handler");
+
+        // Register diagnostic handler
+        DiagnosticTransactionHandler diagnosticHandler = new DiagnosticTransactionHandler(this);
+        getServer().getPluginManager().registerEvents(diagnosticHandler, this);
+        getLogger().info("Registered Diagnostic Transaction Handler");
 
         // Connect listener and manager (circular reference)
         ppManager.setEventListener(eventListener);
