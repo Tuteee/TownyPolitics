@@ -241,17 +241,17 @@ public class TownyEventListener implements Listener {
                 .append(Component.text("• Tax Collection: " + String.format("%+.1f%%", -corruption * 5))
                         .color(NamedTextColor.RED))
                 .append(Component.newline())
-                .append(Component.text("• Max Taxation: " + taxModStr)
-                        .color(getTextColorForValue(taxMod - 1.0)))
-                .append(Component.newline())
+        //        .append(Component.text("• Max Taxation: " + taxModStr)
+        //                .color(getTextColorForValue(taxMod - 1.0, false)))
+        //        .append(Component.newline())
                 .append(Component.text("• Political Power Gain: " + ppModStr)
-                        .color(getTextColorForValue(ppMod - 1.0)))
+                        .color(getTextColorForValue(ppMod - 1.0, false)))
                 .append(Component.newline())
                 .append(Component.text("• Resource Output: " + resourceModStr)
-                        .color(getTextColorForValue(resourceMod - 1.0)))
+                        .color(getTextColorForValue(resourceMod - 1.0, false)))
                 .append(Component.newline())
                 .append(Component.text("• Spending Costs: " + spendingModStr)
-                        .color(getTextColorForValue(spendingMod - 1.0)));
+                        .color(getTextColorForValue(spendingMod - 1.0, true)));
 
         // Create the Corruption component
         Component openBracket = Component.text("[").color(NamedTextColor.GRAY);
@@ -352,10 +352,18 @@ public class TownyEventListener implements Listener {
     /**
      * Get appropriate text color for a value
      * @param value The value to check
-     * @return Appropriate color (RED for negative, GREEN for positive or zero)
+     * @param isSpendingMod Whether this is a spending modifier
+     * @return Appropriate color
      */
-    private NamedTextColor getTextColorForValue(double value) {
-        if (value < 0) return NamedTextColor.RED;
-        return NamedTextColor.GREEN;
+    private NamedTextColor getTextColorForValue(double value, boolean isSpendingMod) {
+        if (isSpendingMod) {
+            // For spending modifiers, positive values are bad (more expensive)
+            if (value > 0) return NamedTextColor.RED;
+            return NamedTextColor.GREEN;
+        } else {
+            // For all other modifiers, negative values are bad
+            if (value < 0) return NamedTextColor.RED;
+            return NamedTextColor.GREEN;
+        }
     }
 }

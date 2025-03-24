@@ -22,8 +22,6 @@ government:
   # Time it takes to switch governments after the first switch (in days)
   switch_time: 7
 
-# Update this section in your config.yml
-
 # Corruption Settings
 corruption:
   # Base daily corruption gain for all nations
@@ -38,12 +36,12 @@ corruption:
 
   # Embezzlement rates for tax income (% of taxes embezzled)
   embezzlement:
-    low: 0.05        # 5% of tax revenue lost
-    medium: 0.15     # 15% of tax revenue lost
-    high: 0.30       # 30% of tax revenue lost
-    critical: 0.60   # 60% of tax revenue lost
+    low: 0.05        # 5% of tax revenue lost at low corruption
+    medium: 0.15     # 15% of tax revenue lost at medium corruption
+    high: 0.30       # 30% of tax revenue lost at high corruption
+    critical: 0.60   # 60% of tax revenue lost at critical corruption
 
-  # Tax collection notifications
+  # Notifications
   notifications:
     embezzlement_message: true  # Show embezzlement messages in nation chat
 
