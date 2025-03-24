@@ -151,4 +151,29 @@ public class TaxationManager {
         double modifier = getTaxModifier(town, isPercentage) - 1.0; // -1 to get just the modifier part
         return String.format("%+.1f%%", modifier * 100);
     }
+
+    /**
+     * Get the tax penalty modifier based on corruption level
+     * Higher corruption = higher percentage of taxes lost to corruption
+     *
+     * @param nation The nation
+     * @return The tax penalty modifier (0.0 to 1.0)
+     */
+    public double getTaxPenaltyModifier(Nation nation) {
+        // Get the corruption level
+        double corruption = corruptionManager.getCorruption(nation);
+
+        // Calculate penalty based on corruption threshold level
+        int thresholdLevel = corruptionManager.getCorruptionThresholdLevel(nation);
+
+        // Calculate penalty modifier based on threshold level
+        return switch (thresholdLevel) {
+            case 0 -> 0.0;                  // No tax penalty
+            case 1 -> 0.05;                 // 5% of taxes lost to corruption
+            case 2 -> 0.15;                 // 15% of taxes lost to corruption
+            case 3 -> 0.25;                 // 25% of taxes lost to corruption
+            case 4 -> 0.5;                  // 50% of taxes lost to corruption (critical level)
+            default -> 0.0;
+        };
+    }
 }

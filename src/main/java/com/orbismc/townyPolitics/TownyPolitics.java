@@ -6,8 +6,7 @@ import com.palmergames.bukkit.towny.TownyCommandAddonAPI.CommandType;
 import com.orbismc.townyPolitics.commands.GovernmentCommand;
 import com.orbismc.townyPolitics.commands.OverviewCommand;
 import com.orbismc.townyPolitics.commands.TownyAdminPoliticsCommand;
-import com.orbismc.townyPolitics.hooks.TownyTaxTransactionHandler;
-import com.orbismc.townyPolitics.hooks.TownyNationTaxHandler;
+import com.orbismc.townyPolitics.hooks.CorruptionEmbezzlementHandler;
 import com.orbismc.townyPolitics.listeners.TownyEventListener;
 import com.orbismc.townyPolitics.managers.GovernmentManager;
 import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
@@ -61,15 +60,10 @@ public class TownyPolitics extends JavaPlugin {
         eventListener = new TownyEventListener(this, ppManager, corruptionManager);
         getServer().getPluginManager().registerEvents(eventListener, this);
 
-        // Register Towny hooks
-        TownyTaxTransactionHandler taxHandler = new TownyTaxTransactionHandler(this);
-        getServer().getPluginManager().registerEvents(taxHandler, this);
-        getLogger().info("Registered Towny taxation hooks.");
-
-        // Register Nation Tax Handler
-        TownyNationTaxHandler nationTaxHandler = new TownyNationTaxHandler(this);
-        getServer().getPluginManager().registerEvents(nationTaxHandler, this);
-        getLogger().info("Registered Towny nation taxation hooks.");
+        // Register Corruption Embezzlement Handler
+        CorruptionEmbezzlementHandler embezzlementHandler = new CorruptionEmbezzlementHandler(this);
+        getServer().getPluginManager().registerEvents(embezzlementHandler, this);
+        getLogger().info("Registered Corruption Embezzlement Handler.");
 
         // Connect listener and manager (circular reference)
         ppManager.setEventListener(eventListener);
