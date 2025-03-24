@@ -91,3 +91,15 @@ corruption:
     level_3:
       cost: 20.0
       reduction: 70.0
+
+# Database Settings
+database:
+  use_mysql: false  # Set to true to use MySQL instead of YAML files
+  host: localhost
+  port: 3306
+  database: townypolitics
+  username: root
+  password: password
+  prefix: tp_  # Table prefix to avoid conflicts with other plugins
+  connection_pool_size: 10
+  max_lifetime: 1800000  # 30 minutes in milliseconds

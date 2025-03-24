@@ -11,6 +11,10 @@ commands:
     description: Test the tax embezzlement system
     usage: /taxtest <town> <amount>
     permission: townypolitics.admin
+  townypoliticsmigrate:
+    description: Migrate data from YAML to MySQL
+    usage: /townypoliticsmigrate
+    permission: townypolitics.admin
 
 permissions:
   townypolitics.admin:

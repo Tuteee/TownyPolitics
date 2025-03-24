@@ -3,12 +3,7 @@ package com.orbismc.townyPolitics;
 import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.TownyCommandAddonAPI;
 import com.palmergames.bukkit.towny.TownyCommandAddonAPI.CommandType;
-import com.orbismc.townyPolitics.commands.GovernmentCommand;
-import com.orbismc.townyPolitics.commands.OverviewCommand;
-import com.orbismc.townyPolitics.commands.TownyAdminPoliticsCommand;
-import com.orbismc.townyPolitics.commands.CorruptionCommand;
-import com.orbismc.townyPolitics.commands.PoliticalPowerCommand;
-import com.orbismc.townyPolitics.commands.TestEmbezzlementCommand;
+import com.orbismc.townyPolitics.commands.*;
 import com.orbismc.townyPolitics.hooks.TransactionEmbezzlementHandler;
 import com.orbismc.townyPolitics.hooks.DiagnosticTransactionHandler;
 import com.orbismc.townyPolitics.listeners.TownyEventListener;
@@ -16,9 +11,15 @@ import com.orbismc.townyPolitics.managers.GovernmentManager;
 import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
 import com.orbismc.townyPolitics.managers.CorruptionManager;
 import com.orbismc.townyPolitics.managers.TaxationManager;
-import com.orbismc.townyPolitics.storage.GovernmentStorage;
-import com.orbismc.townyPolitics.storage.PoliticalPowerStorage;
-import com.orbismc.townyPolitics.storage.CorruptionStorage;
+import com.orbismc.townyPolitics.storage.ICorruptionStorage;
+import com.orbismc.townyPolitics.storage.IGovernmentStorage;
+import com.orbismc.townyPolitics.storage.IPoliticalPowerStorage;
+import com.orbismc.townyPolitics.storage.YamlCorruptionStorage;
+import com.orbismc.townyPolitics.storage.YamlGovernmentStorage;
+import com.orbismc.townyPolitics.storage.YamlPoliticalPowerStorage;
+import com.orbismc.townyPolitics.storage.mysql.MySQLCorruptionStorage;
+import com.orbismc.townyPolitics.storage.mysql.MySQLGovernmentStorage;
+import com.orbismc.townyPolitics.storage.mysql.MySQLPoliticalPowerStorage;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -26,13 +27,14 @@ public class TownyPolitics extends JavaPlugin {
 
     private TownyAPI townyAPI;
     private PoliticalPowerManager ppManager;
-    private PoliticalPowerStorage ppStorage;
+    private IPoliticalPowerStorage ppStorage;
     private GovernmentManager govManager;
-    private GovernmentStorage govStorage;
+    private IGovernmentStorage govStorage;
     private CorruptionManager corruptionManager;
-    private CorruptionStorage corruptionStorage;
+    private ICorruptionStorage corruptionStorage;
     private TaxationManager taxationManager;
     private TownyEventListener eventListener;
+    private DatabaseManager dbManager;
 
     @Override
     public void onEnable() {
@@ -45,10 +47,26 @@ public class TownyPolitics extends JavaPlugin {
 
         townyAPI = TownyAPI.getInstance();
 
-        // Initialize storages
-        ppStorage = new PoliticalPowerStorage(this);
-        govStorage = new GovernmentStorage(this);
-        corruptionStorage = new CorruptionStorage(this);
+        // Save default config
+        saveDefaultConfig();
+
+        // Initialize database manager
+        dbManager = new DatabaseManager(this);
+
+        // Initialize storages based on configuration
+        if (dbManager.isUsingMySQL()) {
+            // Using MySQL
+            getLogger().info("Using MySQL for data storage");
+            ppStorage = new MySQLPoliticalPowerStorage(this, dbManager);
+            govStorage = new MySQLGovernmentStorage(this, dbManager);
+            corruptionStorage = new MySQLCorruptionStorage(this, dbManager);
+        } else {
+            // Using YAML
+            getLogger().info("Using YAML for data storage");
+            ppStorage = new YamlPoliticalPowerStorage(this);
+            govStorage = new YamlGovernmentStorage(this);
+            corruptionStorage = new YamlCorruptionStorage(this);
+        }
 
         // Initialize managers
         ppManager = new PoliticalPowerManager(this, ppStorage);
@@ -80,9 +98,6 @@ public class TownyPolitics extends JavaPlugin {
         // Register commands
         registerCommands();
 
-        // Save default config
-        saveDefaultConfig();
-
         getLogger().info("TownyPolitics has been enabled!");
     }
 
@@ -98,6 +113,12 @@ public class TownyPolitics extends JavaPlugin {
         if (corruptionStorage != null) {
             corruptionStorage.saveAll();
         }
+
+        // Close database connections
+        if (dbManager != null) {
+            dbManager.close();
+        }
+
         getLogger().info("TownyPolitics has been disabled!");
     }
 
@@ -146,6 +167,10 @@ public class TownyPolitics extends JavaPlugin {
             this.getCommand("taxtest").setExecutor(testEmbezzlementCommand);
             getLogger().info("Registered tax testing command");
 
+            // Register migration command
+            new MigrationCommand(this);
+            getLogger().info("Registered migration command");
+
             getLogger().info("Successfully registered all commands.");
         } catch (Exception e) {
             getLogger().severe("Failed to register commands: " + e.getMessage());
@@ -171,5 +196,9 @@ public class TownyPolitics extends JavaPlugin {
 
     public TaxationManager getTaxationManager() {
         return taxationManager;
+    }
+
+    public DatabaseManager getDatabaseManager() {
+        return dbManager;
     }
 }

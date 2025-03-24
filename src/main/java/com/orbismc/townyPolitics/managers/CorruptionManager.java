@@ -4,7 +4,7 @@ import com.palmergames.bukkit.towny.object.Nation;
 import com.palmergames.bukkit.towny.object.Town;
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.government.GovernmentType;
-import com.orbismc.townyPolitics.storage.CorruptionStorage;
+import com.orbismc.townyPolitics.storage.ICorruptionStorage;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,7 +13,7 @@ import java.util.UUID;
 public class CorruptionManager {
 
     private final TownyPolitics plugin;
-    private final CorruptionStorage storage;
+    private final ICorruptionStorage storage;
     private final GovernmentManager govManager;
 
     // Cache of nation UUIDs to their corruption levels
@@ -28,7 +28,7 @@ public class CorruptionManager {
     private final double HIGH_THRESHOLD;
     private final double CRITICAL_THRESHOLD;
 
-    public CorruptionManager(TownyPolitics plugin, CorruptionStorage storage, GovernmentManager govManager) {
+    public CorruptionManager(TownyPolitics plugin, ICorruptionStorage storage, GovernmentManager govManager) {
         this.plugin = plugin;
         this.storage = storage;
         this.govManager = govManager;

@@ -4,7 +4,7 @@ import com.palmergames.bukkit.towny.object.Nation;
 import com.palmergames.bukkit.towny.object.Town;
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.government.GovernmentType;
-import com.orbismc.townyPolitics.storage.GovernmentStorage;
+import com.orbismc.townyPolitics.storage.IGovernmentStorage;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,7 +13,7 @@ import java.util.UUID;
 public class GovernmentManager {
 
     private final TownyPolitics plugin;
-    private final GovernmentStorage storage;
+    private final IGovernmentStorage storage;
 
     private Map<UUID, GovernmentType> townGovernments;
     private Map<UUID, GovernmentType> nationGovernments;
@@ -22,7 +22,7 @@ public class GovernmentManager {
     private Map<UUID, Long> townChangeTimes;
     private Map<UUID, Long> nationChangeTimes;
 
-    public GovernmentManager(TownyPolitics plugin, GovernmentStorage storage) {
+    public GovernmentManager(TownyPolitics plugin, IGovernmentStorage storage) {
         this.plugin = plugin;
         this.storage = storage;
 
