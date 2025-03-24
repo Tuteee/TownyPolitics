@@ -40,6 +40,19 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <relocations>
+                                <relocation>
+                                    <pattern>com.zaxxer.hikari</pattern>
+                                    <shadedPattern>com.orbismc.townyPolitics.libs.hikari</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.slf4j</pattern>
+                                    <shadedPattern>com.orbismc.townyPolitics.libs.slf4j</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -91,31 +104,26 @@
             <systemPath>${project.basedir}/libs/VaultUnlocked-2.9.0.jar</systemPath>
         </dependency>
 
-        <!-- HikariCP as system dependency -->
+        <!-- HikariCP as a regular dependency (will be shaded and relocated) -->
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
             <version>4.0.3</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/libs/HikariCP-4.0.3.jar</systemPath>
         </dependency>
 
-        <!-- SLF4J API as system dependency -->
+        <!-- SLF4J API as a regular dependency (will be shaded and relocated) -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>1.7.36</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/libs/slf4j-api-1.7.36.jar</systemPath>
         </dependency>
 
-        <!-- SLF4J Simple implementation as system dependency -->
+        <!-- SLF4J Simple implementation as a regular dependency (will be shaded and relocated) -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>1.7.36</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/libs/slf4j-simple-1.7.36.jar</systemPath>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
