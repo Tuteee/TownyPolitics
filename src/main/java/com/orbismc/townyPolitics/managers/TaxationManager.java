@@ -3,20 +3,21 @@ package com.orbismc.townyPolitics.managers;
 import com.palmergames.bukkit.towny.object.Nation;
 import com.palmergames.bukkit.towny.object.Town;
 import com.orbismc.townyPolitics.TownyPolitics;
+import com.orbismc.townyPolitics.government.GovernmentType;
 import com.orbismc.townyPolitics.utils.DelegateLogger;
 
 /**
- * Manages taxation modifiers based on corruption levels
+ * Manages taxation modifiers based on corruption levels and government types
  */
 public class TaxationManager {
 
     private final TownyPolitics plugin;
-    private final CorruptionManager corruptionManager;
+    private final CorruptionManager nationCorruptionManager;
     private final DelegateLogger logger;
 
-    public TaxationManager(TownyPolitics plugin, CorruptionManager corruptionManager) {
+    public TaxationManager(TownyPolitics plugin, CorruptionManager nationCorruptionManager) {
         this.plugin = plugin;
-        this.corruptionManager = corruptionManager;
+        this.nationCorruptionManager = nationCorruptionManager;
         this.logger = new DelegateLogger(plugin, "TaxManager");
         logger.info("Taxation Manager initialized");
     }
@@ -65,7 +66,7 @@ public class TaxationManager {
         }
 
         // Apply nation's corruption modifier
-        double taxModifier = corruptionManager.getTaxationModifier(nation);
+        double taxModifier = nationCorruptionManager.getTaxationModifier(nation);
         double modifiedMaxTax = baseTaxRate * taxModifier;
 
         logger.fine("Town " + town.getName() + " in nation " + nation.getName() +
@@ -103,7 +104,7 @@ public class TaxationManager {
             nation = town.getNation();
 
             // Apply nation's corruption modifier
-            double taxModifier = corruptionManager.getTaxationModifier(nation);
+            double taxModifier = nationCorruptionManager.getTaxationModifier(nation);
             double modifiedMaxAmount = baseMaxAmount * taxModifier;
 
             logger.fine("Town " + town.getName() + " in nation " + nation.getName() +
@@ -153,7 +154,7 @@ public class TaxationManager {
         Nation nation;
         try {
             nation = town.getNation();
-            double modifier = corruptionManager.getTaxationModifier(nation);
+            double modifier = nationCorruptionManager.getTaxationModifier(nation);
 
             logger.fine("Tax modifier for town " + town.getName() + " in nation " +
                     nation.getName() + ": " + modifier);
@@ -186,10 +187,10 @@ public class TaxationManager {
      */
     public double getTaxPenaltyModifier(Nation nation) {
         // Get the corruption level
-        double corruption = corruptionManager.getCorruption(nation);
+        double corruption = nationCorruptionManager.getCorruption(nation);
 
         // Calculate penalty based on corruption threshold level
-        int thresholdLevel = corruptionManager.getCorruptionThresholdLevel(nation);
+        int thresholdLevel = nationCorruptionManager.getCorruptionThresholdLevel(nation);
 
         // Calculate penalty modifier based on threshold level
         double penaltyModifier = switch (thresholdLevel) {
@@ -205,5 +206,101 @@ public class TaxationManager {
                 penaltyModifier + " (corruption level: " + thresholdLevel + ")");
 
         return penaltyModifier;
+    }
+
+    /**
+     * Get income generation bonus based on town government type
+     *
+     * @param town The town to calculate bonus for
+     * @return The tax income bonus multiplier (e.g. 1.05 for +5% bonus)
+     */
+    public double getTaxIncomeBonus(Town town) {
+        // Default is no bonus
+        double bonus = 1.0;
+
+        try {
+            // Get town government type
+            GovernmentType govType = plugin.getTownGovManager().getGovernmentType(town);
+
+            // Apply appropriate government bonus
+            switch (govType) {
+                case AUTOCRACY -> {
+                    bonus = 1.05; // +5% Tax income from Effective Control
+                    logger.fine("Town " + town.getName() + " gets +5% tax income from Autocracy government");
+                }
+                case REPUBLIC -> {
+                    bonus = 1.02; // +2% Tax income from Economic Boom
+                    logger.fine("Town " + town.getName() + " gets +2% tax income from Republic government");
+                }
+                case DIRECT_DEMOCRACY -> {
+                    bonus = 1.02; // +2% Tax income from Economic Prosperity
+                    logger.fine("Town " + town.getName() + " gets +2% tax income from Direct Democracy government");
+                }
+                default -> {
+                    // No bonus for other government types
+                }
+            }
+
+            // Apply town corruption penalty if applicable
+            TownCorruptionManager townCorruptionManager = plugin.getTownCorruptionManager();
+            double corruptionModifier = townCorruptionManager.getTaxationModifier(town);
+
+            // Final bonus is government bonus multiplied by corruption penalty
+            double finalBonus = bonus * corruptionModifier;
+
+            logger.fine("Town " + town.getName() + " final tax income modifier: " + finalBonus +
+                    " (gov bonus: " + bonus + ", corruption mod: " + corruptionModifier + ")");
+
+            return finalBonus;
+        } catch (Exception e) {
+            logger.warning("Error calculating tax income bonus: " + e.getMessage());
+            return 1.0; // Default to no bonus on error
+        }
+    }
+
+    /**
+     * Get trade income bonus based on town government type
+     *
+     * @param town The town to check
+     * @return The trade income bonus multiplier (e.g. 1.08 for +8% bonus)
+     */
+    public double getTradeIncomeBonus(Town town) {
+        // Default is no bonus
+        double bonus = 1.0;
+
+        try {
+            // Get town government type
+            GovernmentType govType = plugin.getTownGovManager().getGovernmentType(town);
+
+            // Apply appropriate government bonus
+            switch (govType) {
+                case OLIGARCHY -> {
+                    bonus = 1.08; // +8% Trade income from Elite Connections
+                    logger.fine("Town " + town.getName() + " gets +8% trade income from Oligarchy government");
+                }
+                case REPUBLIC -> {
+                    bonus = 1.05; // +5% Trade income from Economic Boom
+                    logger.fine("Town " + town.getName() + " gets +5% trade income from Republic government");
+                }
+                default -> {
+                    // No bonus for other government types
+                }
+            }
+
+            // Apply town corruption penalty if applicable
+            TownCorruptionManager townCorruptionManager = plugin.getTownCorruptionManager();
+            double corruptionModifier = townCorruptionManager.getTradeModifier(town);
+
+            // Final bonus is government bonus multiplied by corruption penalty
+            double finalBonus = bonus * corruptionModifier;
+
+            logger.fine("Town " + town.getName() + " final trade income modifier: " + finalBonus +
+                    " (gov bonus: " + bonus + ", corruption mod: " + corruptionModifier + ")");
+
+            return finalBonus;
+        } catch (Exception e) {
+            logger.warning("Error calculating trade income bonus: " + e.getMessage());
+            return 1.0; // Default to no bonus on error
+        }
     }
 }

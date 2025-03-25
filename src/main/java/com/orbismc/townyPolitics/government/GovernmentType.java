@@ -1,10 +1,10 @@
 package com.orbismc.townyPolitics.government;
 
 public enum GovernmentType {
-    AUTOCRACY("Autocracy", "Autocracy Effects:\n• Decreased Corruption: -3% Corruption Gain\n• Economic Interventionism: +7% Increase of maximum taxation\n• One Head, One Power: +5% Political Power Gain"),
-    OLIGARCHY("Oligarchy", "Oligarchy Effects:\n• Economic Interventionism II: +10% Increase of maximum taxation\n• Increased Corruption Risk: +5% Corruption Gain\n• Efficient Spending II: -10% All spending necessity"),
-    CONSTITUTIONAL_MONARCHY("Constitutional Monarchy", "Constitutional Monarchy Effects:\n• Collective Security: -25% Political Power cost of alliances\n• For the Motherland: +15% (1 level strength potion boost) Strength boost to all eligible soldiers\n• Efficient Head: -30% Political Power cost of laws decree"),
-    REPUBLIC("Republic", "Republic Effects:\n• Increased Corruption Risk: +1% Corruption Gain (not yet implemented)\n• Efficient Taxation: +5% Increase of maximum taxation (not yet implemented)\n• Efficient Bureaucracy: -25% Political Power cost of policies decree"),
+    AUTOCRACY("Autocracy", "Autocracy Effects:\n• Decreased Corruption: -3% Corruption Gain\n• Streamlined Decision-Making: -15% time for policy implementation\n• One Head, One Power: +5% Political Power Gain"),
+    OLIGARCHY("Oligarchy", "Oligarchy Effects:\n• Elite Connections: +8% trade income with allied nations\n• Increased Corruption Risk: +5% Corruption Gain\n• Efficient Spending II: -10% All spending necessity"),
+    CONSTITUTIONAL_MONARCHY("Constitutional Monarchy", "Constitutional Monarchy Effects:\n• Collective Security: -25% Political Power cost of alliances\n• For the Motherland: +15% Strength boost to all eligible soldiers\n• Efficient Head: -30% Political Power cost of laws decree"),
+    REPUBLIC("Republic", "Republic Effects:\n• Economic Prosperity: +7% town income generation\n• Increased Corruption Risk: +1% Corruption Gain\n• Efficient Bureaucracy: -25% Political Power cost of policies decree"),
     DIRECT_DEMOCRACY("Direct Democracy", "Direct Democracy Effects:\n• Collective Security II: -35% Political Power cost of alliances\n• Efficient Spending: -5% All spending necessity\n• Inefficient Bureaucracy: +15% Political Power cost for laws & policies");
 
     private final String displayName;
