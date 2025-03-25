@@ -99,6 +99,36 @@ corruption:
       cost: 20.0
       reduction: 70.0
 
+# Town Corruption Settings
+town_corruption:
+  # Base daily corruption gain for all towns
+  base_daily_gain: 0.4
+  # Corruption thresholds (%)
+  thresholds:
+    low: 25.0       # Low corruption threshold
+    medium: 50.0    # Medium corruption threshold
+    high: 75.0      # High corruption threshold
+    critical: 90.0  # Critical corruption threshold
+  # Effects of corruption thresholds
+  effects:
+    # Taxation modifier effects by threshold
+    taxation:
+      low: 0.95      # -5% tax income
+      medium: 0.90   # -10% tax income
+      high: 0.80     # -20% tax income
+      critical: 0.70 # -30% tax income
+    # Trade modifiers by threshold
+    trade:
+      low: 0.95      # -5% trade income
+      medium: 0.90   # -10% trade income
+      high: 0.80     # -20% trade income
+      critical: 0.70 # -30% trade income
+
+# Town Government Settings
+town_government:
+  # Cooldown between government changes (in days)
+  change_cooldown: 15
+
 # Database Settings
 database:
   use_mysql: false  # Set to true to use MySQL instead of YAML files

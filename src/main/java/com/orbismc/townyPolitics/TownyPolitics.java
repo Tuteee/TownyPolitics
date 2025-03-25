@@ -12,6 +12,7 @@ import com.orbismc.townyPolitics.storage.*;
 import com.orbismc.townyPolitics.storage.mysql.*;
 import com.orbismc.townyPolitics.utils.DebugLogger;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class TownyPolitics extends JavaPlugin {
@@ -53,8 +54,8 @@ public class TownyPolitics extends JavaPlugin {
 
         townyAPI = TownyAPI.getInstance();
 
-        // Save default config
-        saveDefaultConfig();
+        // Save default config and update with new values
+        loadAndUpdateConfig();
 
         // Initialize debug logger
         debugLogger = new DebugLogger(this);
@@ -118,6 +119,56 @@ public class TownyPolitics extends JavaPlugin {
         getLogger().info("TownyPolitics has been enabled!");
     }
 
+    /**
+     * Loads and updates the config with new sections while preserving existing values
+     */
+    private void loadAndUpdateConfig() {
+        // Create default config if it doesn't exist
+        saveDefaultConfig();
+
+        // Load the config
+        FileConfiguration config = getConfig();
+
+        // Set copyDefaults to true
+        config.options().copyDefaults(true);
+
+        // Add new default sections and values if they don't exist
+        // Town Corruption Settings
+        if (!config.contains("town_corruption")) {
+            config.createSection("town_corruption");
+            config.addDefault("town_corruption.base_daily_gain", 0.4);
+
+            // Thresholds
+            config.addDefault("town_corruption.thresholds.low", 25.0);
+            config.addDefault("town_corruption.thresholds.medium", 50.0);
+            config.addDefault("town_corruption.thresholds.high", 75.0);
+            config.addDefault("town_corruption.thresholds.critical", 90.0);
+
+            // Effects - taxation
+            config.addDefault("town_corruption.effects.taxation.low", 0.95);
+            config.addDefault("town_corruption.effects.taxation.medium", 0.90);
+            config.addDefault("town_corruption.effects.taxation.high", 0.80);
+            config.addDefault("town_corruption.effects.taxation.critical", 0.70);
+
+            // Effects - trade
+            config.addDefault("town_corruption.effects.trade.low", 0.95);
+            config.addDefault("town_corruption.effects.trade.medium", 0.90);
+            config.addDefault("town_corruption.effects.trade.high", 0.80);
+            config.addDefault("town_corruption.effects.trade.critical", 0.70);
+        }
+
+        // Town Government Settings
+        if (!config.contains("town_government")) {
+            config.createSection("town_government");
+            config.addDefault("town_government.change_cooldown", 15);
+        }
+
+        // Save updated config
+        saveConfig();
+
+        getLogger().info("Config loaded and updated with new settings");
+    }
+
     @Override
     public void onDisable() {
         // Save all data on plugin disable
@@ -148,6 +199,9 @@ public class TownyPolitics extends JavaPlugin {
 
     public void reload() {
         reloadConfig();
+
+        // Run the config update process again
+        loadAndUpdateConfig();
 
         // Reinitialize debugLogger with new config settings
         debugLogger = new DebugLogger(this);
