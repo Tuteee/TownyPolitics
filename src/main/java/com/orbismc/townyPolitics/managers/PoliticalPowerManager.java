@@ -4,6 +4,8 @@ import com.palmergames.bukkit.towny.object.Nation;
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.listeners.TownyEventListener;
 import com.orbismc.townyPolitics.storage.IPoliticalPowerStorage;
+import com.orbismc.townyPolitics.utils.DelegateLogger;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -14,6 +16,7 @@ public class PoliticalPowerManager {
     private final IPoliticalPowerStorage storage;
     private final Map<UUID, Double> nationPP; // Cache of nation UUIDs to their political power
     private TownyEventListener eventListener;
+    private final DelegateLogger logger;
 
     // Maximum political power limit
     private final double MAX_PP = 1000.0;
@@ -22,6 +25,7 @@ public class PoliticalPowerManager {
         this.plugin = plugin;
         this.storage = storage;
         this.nationPP = new HashMap<>();
+        this.logger = new DelegateLogger(plugin, "PPManager");
 
         // Load data from storage
         loadData();
@@ -34,39 +38,60 @@ public class PoliticalPowerManager {
     public void loadData() {
         nationPP.clear();
         nationPP.putAll(storage.loadAllPP());
+        logger.info("Loaded political power data for " + nationPP.size() + " nations");
     }
 
     public double getPoliticalPower(Nation nation) {
-        return nationPP.getOrDefault(nation.getUUID(), 0.0);
+        double pp = nationPP.getOrDefault(nation.getUUID(), 0.0);
+        logger.fine("Nation " + nation.getName() + " has " + pp + " political power");
+        return pp;
     }
 
     public void setPoliticalPower(Nation nation, double amount) {
         // Ensure PP can't go below 0 or above MAX_PP
         double newAmount = Math.min(MAX_PP, Math.max(0, amount));
+        double oldAmount = nationPP.getOrDefault(nation.getUUID(), 0.0);
+
         nationPP.put(nation.getUUID(), newAmount);
         storage.savePP(nation.getUUID(), newAmount);
+
+        logger.info("Nation " + nation.getName() + " political power set to " +
+                newAmount + " (was " + oldAmount + ")");
 
         // Update the nation's information if the event listener is available
         if (eventListener != null) {
             try {
                 eventListener.updateNationPoliticalPowerMetadata(nation);
             } catch (Exception e) {
-                plugin.getLogger().warning("Error updating political power display: " + e.getMessage());
+                logger.warning("Error updating political power display: " + e.getMessage());
             }
         }
     }
 
     public void addPoliticalPower(Nation nation, double amount) {
         double current = getPoliticalPower(nation);
-        setPoliticalPower(nation, current + amount);
+        double newAmount = current + amount;
+
+        logger.info("Adding " + amount + " political power to nation " +
+                nation.getName() + " (new total: " + newAmount + ")");
+
+        setPoliticalPower(nation, newAmount);
     }
 
     public boolean removePoliticalPower(Nation nation, double amount) {
         double current = getPoliticalPower(nation);
         if (current >= amount) {
-            setPoliticalPower(nation, current - amount);
+            double newAmount = current - amount;
+
+            logger.info("Removing " + amount + " political power from nation " +
+                    nation.getName() + " (new total: " + newAmount + ")");
+
+            setPoliticalPower(nation, newAmount);
             return true;
         }
+
+        logger.warning("Cannot remove " + amount + " political power from nation " +
+                nation.getName() + " (only has " + current + ")");
         return false;
     }
 
@@ -93,14 +118,26 @@ public class PoliticalPowerManager {
             ppGain = Math.min(maxGain, 2.0 * baseGain + Math.log10(residents / 10.0) * 2 * baseGain);
         }
 
-        return Math.min(maxGain, Math.max(minGain, ppGain)); // Ensure between minGain and maxGain
+        // Apply any modifiers from government type or other systems
+        // This would be implemented in the future
+
+        double finalGain = Math.min(maxGain, Math.max(minGain, ppGain));
+
+        logger.fine("Nation " + nation.getName() + " daily PP gain calculation: " +
+                "residents=" + residents + ", baseGain=" + baseGain +
+                ", calculatedGain=" + ppGain + ", finalGain=" + finalGain);
+
+        return finalGain;
     }
 
     public void processNewDay() {
+        logger.info("Processing daily political power gains for all nations");
+
         plugin.getTownyAPI().getNations().forEach(nation -> {
             double gain = calculateDailyPPGain(nation);
             addPoliticalPower(nation, gain);
-            plugin.getLogger().info("Nation " + nation.getName() + " gained " + String.format("%.2f", gain) + " political power");
+            logger.info("Nation " + nation.getName() + " gained " +
+                    String.format("%.2f", gain) + " political power");
         });
     }
 }

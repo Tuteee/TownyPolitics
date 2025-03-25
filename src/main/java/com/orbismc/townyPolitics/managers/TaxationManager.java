@@ -3,6 +3,7 @@ package com.orbismc.townyPolitics.managers;
 import com.palmergames.bukkit.towny.object.Nation;
 import com.palmergames.bukkit.towny.object.Town;
 import com.orbismc.townyPolitics.TownyPolitics;
+import com.orbismc.townyPolitics.utils.DelegateLogger;
 
 /**
  * Manages taxation modifiers based on corruption levels
@@ -11,10 +12,13 @@ public class TaxationManager {
 
     private final TownyPolitics plugin;
     private final CorruptionManager corruptionManager;
+    private final DelegateLogger logger;
 
     public TaxationManager(TownyPolitics plugin, CorruptionManager corruptionManager) {
         this.plugin = plugin;
         this.corruptionManager = corruptionManager;
+        this.logger = new DelegateLogger(plugin, "TaxManager");
+        logger.info("Taxation Manager initialized");
     }
 
     /**
@@ -47,6 +51,7 @@ public class TaxationManager {
 
         // If town doesn't have a nation, return default
         if (!town.hasNation()) {
+            logger.fine("Town " + town.getName() + " has no nation, using base tax rate: " + baseTaxRate);
             return baseTaxRate;
         }
 
@@ -55,13 +60,17 @@ public class TaxationManager {
         try {
             nation = town.getNation();
         } catch (Exception e) {
-            plugin.getLogger().warning("Error getting nation for tax calculation: " + e.getMessage());
+            logger.warning("Error getting nation for tax calculation: " + e.getMessage());
             return baseTaxRate;
         }
 
         // Apply nation's corruption modifier
         double taxModifier = corruptionManager.getTaxationModifier(nation);
         double modifiedMaxTax = baseTaxRate * taxModifier;
+
+        logger.fine("Town " + town.getName() + " in nation " + nation.getName() +
+                " has modified max tax rate: " + modifiedMaxTax +
+                " (base: " + baseTaxRate + ", modifier: " + taxModifier + ")");
 
         // Enforce minimum of 0
         return Math.max(0, modifiedMaxTax);
@@ -84,6 +93,7 @@ public class TaxationManager {
 
         // If town doesn't have a nation, return default
         if (!town.hasNation()) {
+            logger.fine("Town " + town.getName() + " has no nation, using base max tax amount: " + baseMaxAmount);
             return baseMaxAmount;
         }
 
@@ -96,10 +106,14 @@ public class TaxationManager {
             double taxModifier = corruptionManager.getTaxationModifier(nation);
             double modifiedMaxAmount = baseMaxAmount * taxModifier;
 
+            logger.fine("Town " + town.getName() + " in nation " + nation.getName() +
+                    " has modified max tax amount: " + modifiedMaxAmount +
+                    " (base: " + baseMaxAmount + ", modifier: " + taxModifier + ")");
+
             // Enforce minimum of 0
             return Math.max(0, modifiedMaxAmount);
         } catch (Exception e) {
-            plugin.getLogger().warning("Error calculating max tax percent amount: " + e.getMessage());
+            logger.warning("Error calculating max tax percent amount: " + e.getMessage());
             return baseMaxAmount;
         }
     }
@@ -113,7 +127,13 @@ public class TaxationManager {
      * @return True if the tax rate is valid, false otherwise
      */
     public boolean isValidTaxRate(Town town, double taxRate, boolean isPercentage) {
-        return taxRate <= getModifiedMaxTaxRate(town, isPercentage);
+        double modifiedMaxRate = getModifiedMaxTaxRate(town, isPercentage);
+        boolean isValid = taxRate <= modifiedMaxRate;
+
+        logger.fine("Checking if tax rate " + taxRate + " is valid for town " + town.getName() +
+                ": " + isValid + " (max: " + modifiedMaxRate + ")");
+
+        return isValid;
     }
 
     /**
@@ -133,9 +153,14 @@ public class TaxationManager {
         Nation nation;
         try {
             nation = town.getNation();
-            return corruptionManager.getTaxationModifier(nation);
+            double modifier = corruptionManager.getTaxationModifier(nation);
+
+            logger.fine("Tax modifier for town " + town.getName() + " in nation " +
+                    nation.getName() + ": " + modifier);
+
+            return modifier;
         } catch (Exception e) {
-            plugin.getLogger().warning("Error getting tax modifier: " + e.getMessage());
+            logger.warning("Error getting tax modifier: " + e.getMessage());
             return 1.0;
         }
     }
@@ -167,7 +192,7 @@ public class TaxationManager {
         int thresholdLevel = corruptionManager.getCorruptionThresholdLevel(nation);
 
         // Calculate penalty modifier based on threshold level
-        return switch (thresholdLevel) {
+        double penaltyModifier = switch (thresholdLevel) {
             case 0 -> 0.0;                  // No tax penalty
             case 1 -> 0.05;                 // 5% of taxes lost to corruption
             case 2 -> 0.15;                 // 15% of taxes lost to corruption
@@ -175,5 +200,10 @@ public class TaxationManager {
             case 4 -> 0.5;                  // 50% of taxes lost to corruption (critical level)
             default -> 0.0;
         };
+
+        logger.fine("Nation " + nation.getName() + " has tax penalty modifier: " +
+                penaltyModifier + " (corruption level: " + thresholdLevel + ")");
+
+        return penaltyModifier;
     }
 }

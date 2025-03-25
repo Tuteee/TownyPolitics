@@ -10,6 +10,7 @@ import com.palmergames.bukkit.towny.object.economy.transaction.Transaction;
 import com.palmergames.bukkit.towny.object.economy.transaction.TransactionType;
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.managers.CorruptionManager;
+import com.orbismc.townyPolitics.utils.DebugLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
@@ -29,6 +30,7 @@ public class TransactionEmbezzlementHandler implements Listener {
     private final TownyPolitics plugin;
     private final CorruptionManager corruptionManager;
     private final TownyAPI townyAPI;
+    private final DebugLogger debugLogger;
 
     // Transaction tracking to prevent double embezzlement
     private final Map<String, Long> recentTransactions = new ConcurrentHashMap<>();
@@ -43,6 +45,7 @@ public class TransactionEmbezzlementHandler implements Listener {
         this.plugin = plugin;
         this.corruptionManager = plugin.getCorruptionManager();
         this.townyAPI = TownyAPI.getInstance();
+        this.debugLogger = plugin.getDebugLogger();
 
         // Get config setting for notifications
         this.sendNationMessages = plugin.getConfig().getBoolean("corruption.notifications.embezzlement_message", true);
@@ -50,7 +53,7 @@ public class TransactionEmbezzlementHandler implements Listener {
         // Schedule cleanup task for transaction tracking
         Bukkit.getScheduler().runTaskTimer(plugin, this::cleanupTransactions, 6000L, 6000L); // Run every 5 minutes
 
-        plugin.getLogger().info("Refined Transaction Embezzlement Handler initialized");
+        debugLogger.info("Refined Transaction Embezzlement Handler initialized");
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -76,7 +79,7 @@ public class TransactionEmbezzlementHandler implements Listener {
                 return;
             }
         } catch (Exception e) {
-            plugin.getLogger().warning("Error getting receiving account: " + e.getMessage());
+            debugLogger.warning("Error getting receiving account: " + e.getMessage());
             return;
         }
 
@@ -93,7 +96,7 @@ public class TransactionEmbezzlementHandler implements Listener {
         // Extract nation from account
         Nation nation = getNationFromAccount(receivingAccount);
         if (nation == null) {
-            plugin.getLogger().info("EMBEZZLEMENT DEBUG: Could not determine nation for account: " + accountName);
+            debugLogger.info("Could not determine nation for account: " + accountName);
             return;
         }
 
@@ -110,7 +113,7 @@ public class TransactionEmbezzlementHandler implements Listener {
 
         // Check if this is a duplicate transaction (prevent double embezzlement)
         if (isDuplicateTransaction(transactionId)) {
-            plugin.getLogger().info("EMBEZZLEMENT DEBUG: Skipping duplicate transaction to " + accountName);
+            debugLogger.info("Skipping duplicate transaction to " + accountName);
             return;
         }
 
@@ -126,7 +129,7 @@ public class TransactionEmbezzlementHandler implements Listener {
             return;
         }
 
-        plugin.getLogger().info("EMBEZZLEMENT: Nation " + nation.getName() + " with corruption " +
+        debugLogger.info("EMBEZZLEMENT: Nation " + nation.getName() + " with corruption " +
                 String.format("%.1f", corruption) + "% will have " +
                 String.format("%.2f", embezzledAmount) + " embezzled (" +
                 String.format("%.1f", embezzleRate * 100) + "% of " +
@@ -134,7 +137,7 @@ public class TransactionEmbezzlementHandler implements Listener {
 
         // Check if nation has enough money before attempting to withdraw
         if (nation.getAccount().getHoldingBalance() < embezzledAmount) {
-            plugin.getLogger().warning("EMBEZZLEMENT: Nation " + nation.getName() +
+            debugLogger.warning("Nation " + nation.getName() +
                     " doesn't have enough funds for embezzlement. Available: " +
                     nation.getAccount().getHoldingBalance() + ", Needed: " + embezzledAmount);
             return;
@@ -146,7 +149,7 @@ public class TransactionEmbezzlementHandler implements Listener {
                     "Funds embezzled due to corruption (" + String.format("%.1f", corruption) + "%)");
 
             if (success) {
-                plugin.getLogger().info("EMBEZZLEMENT SUCCESS: " +
+                debugLogger.info("SUCCESS: " +
                         String.format("%.2f", embezzledAmount) +
                         " was embezzled from " + nation.getName() + " due to corruption");
 
@@ -164,11 +167,11 @@ public class TransactionEmbezzlementHandler implements Listener {
                             player.sendMessage(message);
                         }
                     } catch (Exception e) {
-                        plugin.getLogger().warning("Could not send embezzlement message: " + e.getMessage());
+                        debugLogger.warning("Could not send embezzlement message: " + e.getMessage());
                     }
                 }
             } else {
-                plugin.getLogger().warning("EMBEZZLEMENT FAILED: Could not withdraw " +
+                debugLogger.warning("FAILED: Could not withdraw " +
                         embezzledAmount + " from " + nation.getName());
             }
         }, 2L); // 2 tick delay to ensure transaction is complete

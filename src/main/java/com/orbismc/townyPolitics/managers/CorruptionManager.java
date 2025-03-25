@@ -5,6 +5,7 @@ import com.palmergames.bukkit.towny.object.Town;
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.government.GovernmentType;
 import com.orbismc.townyPolitics.storage.ICorruptionStorage;
+import com.orbismc.townyPolitics.utils.DebugLogger;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,6 +16,7 @@ public class CorruptionManager {
     private final TownyPolitics plugin;
     private final ICorruptionStorage storage;
     private final GovernmentManager govManager;
+    private final DebugLogger debugLogger;
 
     // Cache of nation UUIDs to their corruption levels
     private final Map<UUID, Double> nationCorruption;
@@ -33,6 +35,7 @@ public class CorruptionManager {
         this.storage = storage;
         this.govManager = govManager;
         this.nationCorruption = new HashMap<>();
+        this.debugLogger = plugin.getDebugLogger();
 
         // Load configuration - threshold values
         this.LOW_THRESHOLD = plugin.getConfig().getDouble("corruption.thresholds.low", 25.0);
@@ -47,6 +50,7 @@ public class CorruptionManager {
     public void loadData() {
         nationCorruption.clear();
         nationCorruption.putAll(storage.loadAllCorruption(true));
+        debugLogger.info("Loaded corruption data for " + nationCorruption.size() + " nations");
     }
 
     public double getCorruption(Nation nation) {
@@ -58,16 +62,23 @@ public class CorruptionManager {
         double newAmount = Math.min(MAX_CORRUPTION, Math.max(0, amount));
         nationCorruption.put(nation.getUUID(), newAmount);
         storage.saveCorruption(nation.getUUID(), newAmount, true);
+        debugLogger.info("Set corruption for nation " + nation.getName() + " to " + newAmount);
     }
 
     public void addCorruption(Nation nation, double amount) {
         double current = getCorruption(nation);
-        setCorruption(nation, current + amount);
+        double newAmount = current + amount;
+        setCorruption(nation, newAmount);
+        debugLogger.info("Added " + amount + " corruption to nation " + nation.getName() +
+                " (now " + newAmount + "%)");
     }
 
     public void reduceCorruption(Nation nation, double amount) {
         double current = getCorruption(nation);
-        setCorruption(nation, current - amount);
+        double newAmount = current - amount;
+        setCorruption(nation, newAmount);
+        debugLogger.info("Reduced corruption for nation " + nation.getName() +
+                " by " + amount + " (now " + newAmount + "%)");
     }
 
     /**
@@ -228,7 +239,15 @@ public class CorruptionManager {
         double securityModifier = 1.0 - (securitySpending * 0.1); // 10% reduction per level
 
         // Calculate final gain (minimum 0)
-        return Math.max(0, baseGain * govModifier * securityModifier);
+        double finalGain = Math.max(0, baseGain * govModifier * securityModifier);
+
+        debugLogger.fine("Daily corruption gain for " + nation.getName() +
+                ": base=" + baseGain +
+                ", govMod=" + govModifier +
+                ", securityMod=" + securityModifier +
+                ", final=" + finalGain);
+
+        return finalGain;
     }
 
     /**
@@ -239,8 +258,8 @@ public class CorruptionManager {
      */
     private double getGovernmentTypeModifier(GovernmentType govType) {
         return switch (govType) {
-            case AUTOCRACY -> 1.5;    // +50% corruption gain
-            case OLIGARCHY -> 1.2;    // +20% corruption gain
+            case AUTOCRACY -> 0.7;    // -30% corruption gain
+            case OLIGARCHY -> 1.05;   // +5% corruption gain
             case REPUBLIC -> 0.9;     // -10% corruption gain
             case CONSTITUTIONAL_MONARCHY -> 0.8; // -20% corruption gain
             case DIRECT_DEMOCRACY -> 0.6; // -40% corruption gain
@@ -252,6 +271,8 @@ public class CorruptionManager {
      * Process daily corruption changes for all nations
      */
     public void processNewDay() {
+        debugLogger.info("Processing daily corruption changes for all nations");
+
         plugin.getTownyAPI().getNations().forEach(nation -> {
             double gain = calculateDailyCorruptionGain(nation);
 
@@ -265,7 +286,7 @@ public class CorruptionManager {
             int newThresholdLevel = getCorruptionThresholdLevel(nation);
             double currentCorruption = getCorruption(nation);
 
-            plugin.getLogger().info("Nation " + nation.getName() + " gained " +
+            debugLogger.info("Nation " + nation.getName() + " gained " +
                     String.format("%.2f", gain) + " corruption, now at " +
                     String.format("%.2f", currentCorruption) + "% (" +
                     getCorruptionThresholdName(newThresholdLevel) + ")");
@@ -288,7 +309,7 @@ public class CorruptionManager {
             String newLevelName = getCorruptionThresholdName(newLevel);
 
             // Log the threshold change
-            plugin.getLogger().info("Nation " + nation.getName() +
+            debugLogger.info("Nation " + nation.getName() +
                     " corruption increased to " + newLevelName + " level!");
 
             // Apply effects based on new threshold level
@@ -332,7 +353,7 @@ public class CorruptionManager {
         // Apply political power reduction if any
         if (reduction > 0) {
             ppManager.removePoliticalPower(nation, reduction);
-            plugin.getLogger().info("Nation " + nation.getName() +
+            debugLogger.info("Nation " + nation.getName() +
                     " lost " + String.format("%.2f", reduction) +
                     " political power due to " + getCorruptionThresholdName(thresholdLevel) +
                     " corruption levels");

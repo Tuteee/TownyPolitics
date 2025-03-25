@@ -1,6 +1,6 @@
 package com.orbismc.townyPolitics;
 
-import com.orbismc.townyPolitics.TownyPolitics;
+import com.orbismc.townyPolitics.utils.DelegateLogger;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -15,14 +15,18 @@ public class DatabaseManager {
     private final boolean useMySQL;
     private HikariDataSource dataSource;
     private String prefix;
+    private final DelegateLogger logger;
 
     public DatabaseManager(TownyPolitics plugin) {
         this.plugin = plugin;
         this.useMySQL = plugin.getConfig().getBoolean("database.use_mysql", false);
         this.prefix = plugin.getConfig().getString("database.prefix", "tp_");
+        this.logger = new DelegateLogger(plugin, "Database");
 
         if (useMySQL) {
             setupMySQL();
+        } else {
+            logger.info("MySQL is disabled, using YAML storage");
         }
     }
 
@@ -38,6 +42,8 @@ public class DatabaseManager {
         String url = "jdbc:mysql://" + host + ":" + port + "/" + database +
                 "?useSSL=false&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8";
 
+        logger.info("Connecting to MySQL at " + host + ":" + port + "/" + database);
+
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(url);
         config.setUsername(username);
@@ -48,11 +54,11 @@ public class DatabaseManager {
 
         try {
             dataSource = new HikariDataSource(config);
-            plugin.getLogger().info("Successfully connected to MySQL database!");
+            logger.info("Successfully connected to MySQL database!");
             createTables();
         } catch (Exception e) {
-            plugin.getLogger().severe("Failed to connect to MySQL database: " + e.getMessage());
-            plugin.getLogger().severe("Falling back to YAML storage...");
+            logger.severe("Failed to connect to MySQL database: " + e.getMessage());
+            logger.severe("Falling back to YAML storage...");
         }
     }
 
@@ -65,6 +71,7 @@ public class DatabaseManager {
                             "nation_uuid VARCHAR(36) PRIMARY KEY, " +
                             "power_amount DOUBLE NOT NULL)")) {
                 stmt.executeUpdate();
+                logger.fine("Created/verified political_power table");
             }
 
             // Governments table
@@ -75,6 +82,7 @@ public class DatabaseManager {
                             "government_type VARCHAR(50) NOT NULL, " +
                             "last_change_time BIGINT NOT NULL)")) {
                 stmt.executeUpdate();
+                logger.fine("Created/verified governments table");
             }
 
             // Corruption table
@@ -83,11 +91,12 @@ public class DatabaseManager {
                             "nation_uuid VARCHAR(36) PRIMARY KEY, " +
                             "corruption_amount DOUBLE NOT NULL)")) {
                 stmt.executeUpdate();
+                logger.fine("Created/verified corruption table");
             }
 
-            plugin.getLogger().info("Successfully created database tables!");
+            logger.info("Successfully created/verified all database tables!");
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to create database tables: " + e.getMessage());
+            logger.severe("Failed to create database tables: " + e.getMessage());
         }
     }
 
@@ -100,6 +109,7 @@ public class DatabaseManager {
 
     public void close() {
         if (dataSource != null && !dataSource.isClosed()) {
+            logger.info("Closing database connection pool");
             dataSource.close();
         }
     }

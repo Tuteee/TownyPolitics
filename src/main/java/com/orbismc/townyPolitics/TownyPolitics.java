@@ -20,6 +20,7 @@ import com.orbismc.townyPolitics.storage.YamlPoliticalPowerStorage;
 import com.orbismc.townyPolitics.storage.mysql.MySQLCorruptionStorage;
 import com.orbismc.townyPolitics.storage.mysql.MySQLGovernmentStorage;
 import com.orbismc.townyPolitics.storage.mysql.MySQLPoliticalPowerStorage;
+import com.orbismc.townyPolitics.utils.DebugLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -35,6 +36,7 @@ public class TownyPolitics extends JavaPlugin {
     private TaxationManager taxationManager;
     private TownyEventListener eventListener;
     private DatabaseManager dbManager;
+    private DebugLogger debugLogger;
 
     @Override
     public void onEnable() {
@@ -50,19 +52,23 @@ public class TownyPolitics extends JavaPlugin {
         // Save default config
         saveDefaultConfig();
 
+        // Initialize debug logger
+        debugLogger = new DebugLogger(this);
+        debugLogger.info("TownyPolitics debug logger initialized");
+
         // Initialize database manager
         dbManager = new DatabaseManager(this);
 
         // Initialize storages based on configuration
         if (dbManager.isUsingMySQL()) {
             // Using MySQL
-            getLogger().info("Using MySQL for data storage");
+            debugLogger.info("Using MySQL for data storage");
             ppStorage = new MySQLPoliticalPowerStorage(this, dbManager);
             govStorage = new MySQLGovernmentStorage(this, dbManager);
             corruptionStorage = new MySQLCorruptionStorage(this, dbManager);
         } else {
             // Using YAML
-            getLogger().info("Using YAML for data storage");
+            debugLogger.info("Using YAML for data storage");
             ppStorage = new YamlPoliticalPowerStorage(this);
             govStorage = new YamlGovernmentStorage(this);
             corruptionStorage = new YamlCorruptionStorage(this);
@@ -85,12 +91,12 @@ public class TownyPolitics extends JavaPlugin {
         // Register improved transaction embezzlement handler
         TransactionEmbezzlementHandler embezzlementHandler = new TransactionEmbezzlementHandler(this);
         getServer().getPluginManager().registerEvents(embezzlementHandler, this);
-        getLogger().info("Registered Improved Transaction Embezzlement Handler");
+        debugLogger.info("Registered Improved Transaction Embezzlement Handler");
 
         // Keep the diagnostic handler if you want to see events for debugging
         DiagnosticTransactionHandler diagnosticHandler = new DiagnosticTransactionHandler(this);
         getServer().getPluginManager().registerEvents(diagnosticHandler, this);
-        getLogger().info("Registered Diagnostic Transaction Handler");
+        debugLogger.info("Registered Diagnostic Transaction Handler");
 
         // Connect listener and manager (circular reference)
         ppManager.setEventListener(eventListener);
@@ -98,6 +104,7 @@ public class TownyPolitics extends JavaPlugin {
         // Register commands
         registerCommands();
 
+        debugLogger.info("TownyPolitics has been enabled!");
         getLogger().info("TownyPolitics has been enabled!");
     }
 
@@ -119,11 +126,17 @@ public class TownyPolitics extends JavaPlugin {
             dbManager.close();
         }
 
+        debugLogger.info("TownyPolitics has been disabled!");
         getLogger().info("TownyPolitics has been disabled!");
     }
 
     public void reload() {
         reloadConfig();
+
+        // Reinitialize debugLogger with new config settings
+        debugLogger = new DebugLogger(this);
+        debugLogger.info("Debug logger reinitialized with new config settings");
+
         if (ppManager != null) {
             ppManager.loadData();
         }
@@ -133,6 +146,8 @@ public class TownyPolitics extends JavaPlugin {
         if (corruptionManager != null) {
             corruptionManager.loadData();
         }
+
+        debugLogger.info("Configuration reloaded");
     }
 
     /**
@@ -165,15 +180,15 @@ public class TownyPolitics extends JavaPlugin {
             // Register test command for embezzlement
             TestEmbezzlementCommand testEmbezzlementCommand = new TestEmbezzlementCommand(this);
             this.getCommand("taxtest").setExecutor(testEmbezzlementCommand);
-            getLogger().info("Registered tax testing command");
+            debugLogger.info("Registered tax testing command");
 
             // Register migration command
             new MigrationCommand(this);
-            getLogger().info("Registered migration command");
+            debugLogger.info("Registered migration command");
 
-            getLogger().info("Successfully registered all commands.");
+            debugLogger.info("Successfully registered all commands");
         } catch (Exception e) {
-            getLogger().severe("Failed to register commands: " + e.getMessage());
+            debugLogger.severe("Failed to register commands: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -200,5 +215,9 @@ public class TownyPolitics extends JavaPlugin {
 
     public DatabaseManager getDatabaseManager() {
         return dbManager;
+    }
+
+    public DebugLogger getDebugLogger() {
+        return debugLogger;
     }
 }

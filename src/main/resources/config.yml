@@ -1,5 +1,12 @@
 # TownyPolitics Configuration
 
+# Debug Settings
+debug:
+  enabled: false        # Set to true to enable debug logging
+  log_to_file: true     # Whether to write logs to a file instead of console
+  file_name: "debug.log" # Name of the debug log file
+  log_level: INFO       # Log level - options: FINE, INFO, WARNING, SEVERE
+
 # Political Power Settings
 political_power:
   # The maximum daily political power gain for any nation

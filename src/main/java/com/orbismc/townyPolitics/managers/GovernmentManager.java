@@ -5,6 +5,7 @@ import com.palmergames.bukkit.towny.object.Town;
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.government.GovernmentType;
 import com.orbismc.townyPolitics.storage.IGovernmentStorage;
+import com.orbismc.townyPolitics.utils.DelegateLogger;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,6 +15,7 @@ public class GovernmentManager {
 
     private final TownyPolitics plugin;
     private final IGovernmentStorage storage;
+    private final DelegateLogger logger;
 
     private Map<UUID, GovernmentType> townGovernments;
     private Map<UUID, GovernmentType> nationGovernments;
@@ -25,6 +27,7 @@ public class GovernmentManager {
     public GovernmentManager(TownyPolitics plugin, IGovernmentStorage storage) {
         this.plugin = plugin;
         this.storage = storage;
+        this.logger = new DelegateLogger(plugin, "GovManager");
 
         this.townGovernments = new HashMap<>();
         this.nationGovernments = new HashMap<>();
@@ -45,18 +48,26 @@ public class GovernmentManager {
         nationGovernments.putAll(storage.loadAllGovernments(true));
         townChangeTimes.putAll(storage.loadAllChangeTimes(false));
         nationChangeTimes.putAll(storage.loadAllChangeTimes(true));
+
+        logger.info("Loaded " + townGovernments.size() + " town governments and " +
+                nationGovernments.size() + " nation governments");
     }
 
     public void reload() {
+        logger.info("Reloading government data");
         loadData();
     }
 
     public GovernmentType getGovernmentType(Town town) {
-        return townGovernments.getOrDefault(town.getUUID(), GovernmentType.AUTOCRACY);
+        GovernmentType type = townGovernments.getOrDefault(town.getUUID(), GovernmentType.AUTOCRACY);
+        logger.fine("Town " + town.getName() + " has government type: " + type.name());
+        return type;
     }
 
     public GovernmentType getGovernmentType(Nation nation) {
-        return nationGovernments.getOrDefault(nation.getUUID(), GovernmentType.AUTOCRACY);
+        GovernmentType type = nationGovernments.getOrDefault(nation.getUUID(), GovernmentType.AUTOCRACY);
+        logger.fine("Nation " + nation.getName() + " has government type: " + type.name());
+        return type;
     }
 
     public long getLastChangeTime(Town town) {
@@ -75,7 +86,13 @@ public class GovernmentManager {
 
         long cooldownDays = plugin.getConfig().getLong("government.change_cooldown", 30);
         long cooldownMillis = cooldownDays * 24 * 60 * 60 * 1000;
-        return (System.currentTimeMillis() - lastChange) < cooldownMillis;
+        boolean onCooldown = (System.currentTimeMillis() - lastChange) < cooldownMillis;
+
+        if (onCooldown) {
+            logger.info("Town " + town.getName() + " is on government change cooldown");
+        }
+
+        return onCooldown;
     }
 
     public boolean isOnCooldown(Nation nation) {
@@ -86,7 +103,13 @@ public class GovernmentManager {
 
         long cooldownDays = plugin.getConfig().getLong("government.change_cooldown", 30);
         long cooldownMillis = cooldownDays * 24 * 60 * 60 * 1000;
-        return (System.currentTimeMillis() - lastChange) < cooldownMillis;
+        boolean onCooldown = (System.currentTimeMillis() - lastChange) < cooldownMillis;
+
+        if (onCooldown) {
+            logger.info("Nation " + nation.getName() + " is on government change cooldown");
+        }
+
+        return onCooldown;
     }
 
     public long getCooldownTimeRemaining(Town town) {
@@ -125,8 +148,12 @@ public class GovernmentManager {
     public boolean setGovernmentType(Town town, GovernmentType type, boolean bypassCooldown) {
         // Check cooldown if not bypassing
         if (!bypassCooldown && isOnCooldown(town)) {
+            logger.info("Town " + town.getName() + " attempted to change government while on cooldown");
             return false;
         }
+
+        // Get old government type for logging
+        GovernmentType oldType = getGovernmentType(town);
 
         // Update government type
         townGovernments.put(town.getUUID(), type);
@@ -136,6 +163,9 @@ public class GovernmentManager {
         long now = System.currentTimeMillis();
         townChangeTimes.put(town.getUUID(), now);
         storage.saveChangeTime(town.getUUID(), now, false);
+
+        logger.info("Town " + town.getName() + " changed government from " + oldType.name() +
+                " to " + type.name() + (bypassCooldown ? " (bypass cooldown)" : ""));
 
         return true;
     }
@@ -147,8 +177,12 @@ public class GovernmentManager {
     public boolean setGovernmentType(Nation nation, GovernmentType type, boolean bypassCooldown) {
         // Check cooldown if not bypassing
         if (!bypassCooldown && isOnCooldown(nation)) {
+            logger.info("Nation " + nation.getName() + " attempted to change government while on cooldown");
             return false;
         }
+
+        // Get old government type for logging
+        GovernmentType oldType = getGovernmentType(nation);
 
         // Update government type
         nationGovernments.put(nation.getUUID(), type);
@@ -158,6 +192,9 @@ public class GovernmentManager {
         long now = System.currentTimeMillis();
         nationChangeTimes.put(nation.getUUID(), now);
         storage.saveChangeTime(nation.getUUID(), now, true);
+
+        logger.info("Nation " + nation.getName() + " changed government from " + oldType.name() +
+                " to " + type.name() + (bypassCooldown ? " (bypass cooldown)" : ""));
 
         return true;
     }
