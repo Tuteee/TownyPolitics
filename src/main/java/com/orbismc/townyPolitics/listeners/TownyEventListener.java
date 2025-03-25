@@ -12,6 +12,7 @@ import com.orbismc.townyPolitics.government.GovernmentType;
 import com.orbismc.townyPolitics.managers.GovernmentManager;
 import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
 import com.orbismc.townyPolitics.managers.CorruptionManager;
+import com.orbismc.townyPolitics.managers.TownCorruptionManager;
 import com.palmergames.adventure.text.Component;
 import com.palmergames.adventure.text.format.NamedTextColor;
 import com.palmergames.adventure.text.event.HoverEvent;
@@ -26,6 +27,7 @@ public class TownyEventListener implements Listener {
     private final PoliticalPowerManager ppManager;
     private final GovernmentManager govManager;
     private final CorruptionManager corruptionManager;
+    private final TownCorruptionManager townCorruptionManager;
 
     private static final String STORAGE_KEY = "townypolitics_storage";
     private static final String POLITICAL_POWER_KEY = "political_power";
@@ -37,6 +39,7 @@ public class TownyEventListener implements Listener {
         this.ppManager = ppManager;
         this.govManager = plugin.getGovManager();
         this.corruptionManager = corruptionManager;
+        this.townCorruptionManager = plugin.getTownCorruptionManager();
     }
 
     @EventHandler
@@ -44,6 +47,7 @@ public class TownyEventListener implements Listener {
         plugin.getLogger().info("Processing new day for political power and corruption...");
         ppManager.processNewDay();
         corruptionManager.processNewDay();
+        townCorruptionManager.processNewDay();
         plugin.getLogger().info("Political power and corruption processing complete.");
     }
 
@@ -100,6 +104,9 @@ public class TownyEventListener implements Listener {
 
             // Add Government Type component for towns
             addTownGovernmentComponent(event, town);
+
+            // Add Corruption component for towns
+            addTownCorruptionComponent(event, town);
 
         } catch (Exception e) {
             plugin.getLogger().warning("Error adding components to town status screen: " + e.getMessage());
@@ -241,9 +248,9 @@ public class TownyEventListener implements Listener {
                 .append(Component.text("• Tax Collection: " + String.format("%+.1f%%", -corruption * 5))
                         .color(NamedTextColor.RED))
                 .append(Component.newline())
-        //        .append(Component.text("• Max Taxation: " + taxModStr)
-        //                .color(getTextColorForValue(taxMod - 1.0, false)))
-        //        .append(Component.newline())
+                //        .append(Component.text("• Max Taxation: " + taxModStr)
+                //                .color(getTextColorForValue(taxMod - 1.0, false)))
+                //        .append(Component.newline())
                 .append(Component.text("• Political Power Gain: " + ppModStr)
                         .color(getTextColorForValue(ppMod - 1.0, false)))
                 .append(Component.newline())
@@ -269,33 +276,66 @@ public class TownyEventListener implements Listener {
     }
 
     /**
-     * Add corruption component to town status screen
+     * Add town corruption component to town status screen
      *
      * @param event The event
      * @param town The town
      */
     private void addTownCorruptionComponent(TownStatusScreenEvent event, Town town) {
-        double corruption = 0.0;
+        double corruption = townCorruptionManager.getCorruption(town);
+        double dailyCorruptionGain = townCorruptionManager.calculateDailyCorruptionGain(town);
 
-        // Determine text color based on corruption level
-        NamedTextColor corruptColor;
-        if (corruption >= 75) corruptColor = NamedTextColor.DARK_RED;
-        else if (corruption >= 50) corruptColor = NamedTextColor.RED;
-        else if (corruption >= 25) corruptColor = NamedTextColor.YELLOW;
-        else if (corruption == 0) corruptColor  = NamedTextColor.GREEN;
-        else corruptColor = NamedTextColor.GREEN;
+        // Get corruption threshold level and determine color
+        int thresholdLevel = townCorruptionManager.getCorruptionThresholdLevel(town);
+        NamedTextColor corruptColor = switch (thresholdLevel) {
+            case 0 -> NamedTextColor.GREEN;       // Minimal
+            case 1 -> NamedTextColor.YELLOW;      // Low
+            case 2 -> NamedTextColor.GOLD;        // Medium
+            case 3 -> NamedTextColor.RED;         // High
+            case 4 -> NamedTextColor.DARK_RED;    // Critical
+            default -> NamedTextColor.GREEN;
+        };
+
+        // Get modifiers
+        double taxMod = townCorruptionManager.getTaxationModifier(town);
+        double tradeMod = townCorruptionManager.getTradeModifier(town);
+
+        // Format modifiers as percentages
+        String taxModStr = String.format("%+.1f%%", (taxMod - 1.0) * 100);
+        String tradeModStr = String.format("%+.1f%%", (tradeMod - 1.0) * 100);
+
+        // Get threshold name
+        String thresholdName = townCorruptionManager.getCorruptionThresholdName(thresholdLevel);
 
         // Create hover text component
-        Component hoverText = Component.text("Corruption Information")
+        Component hoverText = Component.text("Town Corruption Information")
                 .color(NamedTextColor.DARK_GREEN)
                 .append(Component.newline())
                 .append(Component.newline())
-                .append(Component.text("Current Corruption Level: " + String.format("%.1f%%", corruption))
-                        .color(corruptColor));
+                .append(Component.text("Status: ")
+                        .color(NamedTextColor.YELLOW))
+                .append(Component.text(thresholdName)
+                        .color(corruptColor))
+                .append(Component.newline())
+                .append(Component.text("Current Level: " + String.format("%.1f%%", corruption))
+                        .color(corruptColor))
+                .append(Component.newline())
+                .append(Component.text("Daily Change: +" + String.format("%.2f%%", dailyCorruptionGain))
+                        .color(NamedTextColor.RED))
+                .append(Component.newline())
+                .append(Component.newline())
+                .append(Component.text("Effects:")
+                        .color(NamedTextColor.YELLOW))
+                .append(Component.newline())
+                .append(Component.text("• Tax Income: " + taxModStr)
+                        .color(getTextColorForValue(taxMod - 1.0, false)))
+                .append(Component.newline())
+                .append(Component.text("• Trade Income: " + tradeModStr)
+                        .color(getTextColorForValue(tradeMod - 1.0, false)));
 
         // Create the Corruption component
         Component openBracket = Component.text("[").color(NamedTextColor.GRAY);
-        Component corruptText = Component.text("Corruption").color(NamedTextColor.GREEN);
+        Component corruptText = Component.text("Corruption").color(corruptColor);
         Component closeBracket = Component.text("]").color(NamedTextColor.GRAY);
 
         Component corruptComponent = Component.empty()
@@ -305,7 +345,7 @@ public class TownyEventListener implements Listener {
                 .hoverEvent(HoverEvent.showText(hoverText));
 
         // Add to status screen
-        event.getStatusScreen().addComponentOf("corruption_display", corruptComponent);
+        event.getStatusScreen().addComponentOf("town_corruption_display", corruptComponent);
     }
 
     /**

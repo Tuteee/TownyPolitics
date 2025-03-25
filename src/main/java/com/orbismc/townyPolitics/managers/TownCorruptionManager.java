@@ -148,7 +148,7 @@ public class TownCorruptionManager {
             case AUTOCRACY -> 0.97;    // -3% corruption gain
             case OLIGARCHY -> 1.05;    // +5% corruption gain
             case REPUBLIC -> 1.01;     // +1% corruption gain
-            case DIRECT_DEMOCRACY -> 0.9; // -10% corruption gain
+            case DIRECT_DEMOCRACY -> 0.90;    // -10% corruption gain
             default -> 1.0;
         };
     }
@@ -176,7 +176,56 @@ public class TownCorruptionManager {
                     String.format("%.2f", gain) + " corruption, now at " +
                     String.format("%.2f", currentCorruption) + "% (" +
                     getCorruptionThresholdName(newThresholdLevel) + ")");
+
+            // Apply threshold-based effects
+            applyThresholdEffects(town, oldThresholdLevel, newThresholdLevel);
         });
+    }
+
+    /**
+     * Apply effects based on corruption threshold level
+     *
+     * @param town The town
+     * @param oldLevel Previous corruption threshold level
+     * @param newLevel Current corruption threshold level
+     */
+    private void applyThresholdEffects(Town town, int oldLevel, int newLevel) {
+        // If threshold level increased, notify and apply immediate effects
+        if (newLevel > oldLevel) {
+            String newLevelName = getCorruptionThresholdName(newLevel);
+
+            // Log the threshold change
+            logger.info("Town " + town.getName() +
+                    " corruption increased to " + newLevelName + " level!");
+
+            // Apply effects based on new threshold level
+            applyCorruptionEffects(town, newLevel);
+        }
+        // Always apply daily effects for high/critical corruption
+        else if (newLevel >= 3) {
+            applyCorruptionEffects(town, newLevel);
+        }
+    }
+
+    /**
+     * Apply negative effects based on corruption threshold level
+     *
+     * @param town The town
+     * @param thresholdLevel Current corruption threshold level (0-4)
+     */
+    private void applyCorruptionEffects(Town town, int thresholdLevel) {
+        // Town corruption doesn't affect political power or spending as specified
+        // But we can add future effects here if needed
+
+        switch (thresholdLevel) {
+            case 3: // High corruption
+                // Future high corruption effects could go here
+                break;
+
+            case 4: // Critical corruption
+                // Future critical corruption effects could go here
+                break;
+        }
     }
 
     /**

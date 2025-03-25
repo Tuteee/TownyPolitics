@@ -53,10 +53,19 @@ public class GovernmentCommand implements CommandExecutor, TabCompleter {
         // Both town and nation have the same simplified command structure now
         if (args.length == 0) {
             player.sendMessage(ChatColor.RED + "Usage: /" + COMMAND_SOURCE + " government <type>");
-            player.sendMessage(ChatColor.YELLOW + "Available government types: " +
-                    Arrays.stream(GovernmentType.values())
-                            .map(GovernmentType::name)
-                            .collect(Collectors.joining(", ")));
+
+            // Show appropriate government types based on command source
+            if (COMMAND_SOURCE.equals("town")) {
+                player.sendMessage(ChatColor.YELLOW + "Available government types: " +
+                        Arrays.stream(GovernmentType.getTownGovernmentTypes())
+                                .map(GovernmentType::name)
+                                .collect(Collectors.joining(", ")));
+            } else {
+                player.sendMessage(ChatColor.YELLOW + "Available government types: " +
+                        Arrays.stream(GovernmentType.values())
+                                .map(GovernmentType::name)
+                                .collect(Collectors.joining(", ")));
+            }
 
             if (COMMAND_SOURCE.equals("nation")) {
                 player.sendMessage(ChatColor.YELLOW + "Use " + ChatColor.WHITE + "/nation overview" +
@@ -76,6 +85,13 @@ public class GovernmentCommand implements CommandExecutor, TabCompleter {
                     Arrays.stream(GovernmentType.values())
                             .map(GovernmentType::name)
                             .collect(Collectors.joining(", ")));
+            return true;
+        }
+
+        // Check if trying to set a nation-only government type for a town
+        if (COMMAND_SOURCE.equals("town") && govType.isNationOnly()) {
+            player.sendMessage(ChatColor.RED + "The government type " + govType.getDisplayName() +
+                    " is only available for nations, not towns.");
             return true;
         }
 
@@ -159,9 +175,16 @@ public class GovernmentCommand implements CommandExecutor, TabCompleter {
 
         // For both town and nation, only provide government type completions at the first level
         if (args.length == 1) {
-            List<String> govTypes = Arrays.stream(GovernmentType.values())
-                    .map(GovernmentType::name)
-                    .collect(Collectors.toList());
+            List<String> govTypes;
+            if (COMMAND_SOURCE.equals("town")) {
+                govTypes = Arrays.stream(GovernmentType.getTownGovernmentTypes())
+                        .map(GovernmentType::name)
+                        .collect(Collectors.toList());
+            } else {
+                govTypes = Arrays.stream(GovernmentType.values())
+                        .map(GovernmentType::name)
+                        .collect(Collectors.toList());
+            }
             return filterCompletions(govTypes, args[0]);
         }
 

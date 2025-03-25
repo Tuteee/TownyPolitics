@@ -261,8 +261,8 @@ public class CorruptionManager {
             case AUTOCRACY -> 0.7;    // -30% corruption gain
             case OLIGARCHY -> 1.05;   // +5% corruption gain
             case REPUBLIC -> 0.9;     // -10% corruption gain
-            case CONSTITUTIONAL_MONARCHY -> 0.8; // -20% corruption gain
             case DIRECT_DEMOCRACY -> 0.6; // -40% corruption gain
+            case CONSTITUTIONAL_MONARCHY -> 0.8; // -20% corruption gain
             default -> 1.0;
         };
     }
