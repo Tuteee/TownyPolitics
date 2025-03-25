@@ -1,8 +1,7 @@
-// YamlTownGovernmentStorage.java
 package com.orbismc.townyPolitics.storage;
 
 import com.orbismc.townyPolitics.TownyPolitics;
-import com.orbismc.townyPolitics.government.TownGovernmentType;
+import com.orbismc.townyPolitics.government.GovernmentType;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -55,7 +54,7 @@ public class YamlTownGovernmentStorage implements ITownGovernmentStorage {
     }
 
     @Override
-    public void saveGovernment(UUID uuid, TownGovernmentType type) {
+    public void saveGovernment(UUID uuid, GovernmentType type) {
         data.set("towns." + uuid.toString(), type.name());
         saveData();
     }
@@ -67,18 +66,18 @@ public class YamlTownGovernmentStorage implements ITownGovernmentStorage {
     }
 
     @Override
-    public TownGovernmentType getGovernment(UUID uuid) {
+    public GovernmentType getGovernment(UUID uuid) {
         String typeName = data.getString("towns." + uuid.toString());
 
         if (typeName == null) {
-            return TownGovernmentType.AUTOCRACY; // Default
+            return GovernmentType.AUTOCRACY; // Default
         }
 
         try {
-            return TownGovernmentType.valueOf(typeName);
+            return GovernmentType.valueOf(typeName);
         } catch (IllegalArgumentException e) {
             plugin.getLogger().warning("Invalid town government type in storage: " + typeName);
-            return TownGovernmentType.AUTOCRACY; // Default to AUTOCRACY if invalid
+            return GovernmentType.AUTOCRACY; // Default to AUTOCRACY if invalid
         }
     }
 
@@ -88,15 +87,15 @@ public class YamlTownGovernmentStorage implements ITownGovernmentStorage {
     }
 
     @Override
-    public Map<UUID, TownGovernmentType> loadAllGovernments() {
-        Map<UUID, TownGovernmentType> result = new HashMap<>();
+    public Map<UUID, GovernmentType> loadAllGovernments() {
+        Map<UUID, GovernmentType> result = new HashMap<>();
 
         if (data.isConfigurationSection("towns")) {
             for (String key : data.getConfigurationSection("towns").getKeys(false)) {
                 try {
                     UUID uuid = UUID.fromString(key);
                     String typeName = data.getString("towns." + key);
-                    TownGovernmentType type = TownGovernmentType.valueOf(typeName);
+                    GovernmentType type = GovernmentType.valueOf(typeName);
                     result.put(uuid, type);
                 } catch (IllegalArgumentException e) {
                     plugin.getLogger().warning("Invalid data in town government storage: " + key);
