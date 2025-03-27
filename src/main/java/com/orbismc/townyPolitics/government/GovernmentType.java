@@ -7,7 +7,7 @@ public enum GovernmentType {
     OLIGARCHY("Oligarchy", "Oligarchy Effects:\n• Elite Connections: +8% Trade income\n• Increased Corruption Risk: +5% Corruption gain", false),
     REPUBLIC("Republic", "Republic Effects:\n• Economic Boom: +5% Trade Income, +2% Tax income\n• Increased Corruption Risk: +1% Corruption gain", false),
     DIRECT_DEMOCRACY("Direct Democracy", "Direct Democracy Effects:\n• Economic Prosperity: +2% Tax income\n• Transparent Ruling: -10% Corruption gain", false),
-    CONSTITUTIONAL_MONARCHY("Constitutional Monarchy", "Constitutional Monarchy Effects:\n• Collective Security: -25% Political Power cost of alliances\n• For the Motherland: +15% Strength boost to all eligible soldiers\n• Efficient Head: -30% Political Power cost of laws decree", true);
+    CONSTITUTIONAL_MONARCHY("Constitutional Monarchy", "Constitutional Monarchy Effects:\n• For the Motherland: +15% Strength boost to all eligible soldiers\n• Efficient Head: -30% Political Power cost of policies", true);
 
     private final String displayName;
     private final String description;

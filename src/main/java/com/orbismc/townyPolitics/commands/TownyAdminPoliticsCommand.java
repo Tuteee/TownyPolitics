@@ -17,6 +17,7 @@ import com.orbismc.townyPolitics.government.GovernmentType;
 import com.orbismc.townyPolitics.managers.CorruptionManager;
 import com.orbismc.townyPolitics.managers.GovernmentManager;
 import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
+import com.orbismc.townyPolitics.managers.TownCorruptionManager;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -33,12 +34,14 @@ import java.util.stream.Collectors;
 public class TownyAdminPoliticsCommand extends BaseCommand implements TabExecutor {
 
     private static final List<String> townyPoliticsAdminTabCompletes = Arrays.asList(
-            "setgovernment", "addpp", "setpp", "addcorruption", "setcorruption", "reload");
+            "setgovernment", "addpp", "setpp", "addcorruption", "setcorruption",
+            "addtowncorruption", "settowncorruption", "reload");
 
     private final TownyPolitics plugin;
     private final GovernmentManager govManager;
     private final PoliticalPowerManager ppManager;
     private final CorruptionManager corruptionManager;
+    private final TownCorruptionManager townCorruptionManager;
     private final TownyAPI townyAPI;
 
     public TownyAdminPoliticsCommand(TownyPolitics plugin, GovernmentManager govManager,
@@ -47,6 +50,7 @@ public class TownyAdminPoliticsCommand extends BaseCommand implements TabExecuto
         this.govManager = govManager;
         this.ppManager = ppManager;
         this.corruptionManager = corruptionManager;
+        this.townCorruptionManager = plugin.getTownCorruptionManager();
         this.townyAPI = TownyAPI.getInstance();
 
         // Register the command with Towny
@@ -65,6 +69,9 @@ public class TownyAdminPoliticsCommand extends BaseCommand implements TabExecuto
                 } else if (args[0].equalsIgnoreCase("addpp") || args[0].equalsIgnoreCase("setpp") ||
                         args[0].equalsIgnoreCase("addcorruption") || args[0].equalsIgnoreCase("setcorruption")) {
                     return getTownyStartingWith(args[1], "n");
+                } else if (args[0].equalsIgnoreCase("addtowncorruption") || args[0].equalsIgnoreCase("settowncorruption") ||
+                        args[0].equalsIgnoreCase("addtowncorrupt") || args[0].equalsIgnoreCase("settowncorrupt")) {
+                    return getTownyStartingWith(args[1], "t");
                 }
                 break;
             case 3:
@@ -102,6 +109,8 @@ public class TownyAdminPoliticsCommand extends BaseCommand implements TabExecuto
                 case "setpp" -> parseSetPPCommand(sender, StringMgmt.remFirstArg(args));
                 case "addcorruption", "addcorrupt" -> parseAddCorruptionCommand(sender, StringMgmt.remFirstArg(args));
                 case "setcorruption", "setcorrupt" -> parseSetCorruptionCommand(sender, StringMgmt.remFirstArg(args));
+                case "addtowncorruption", "addtowncorrupt" -> parseAddTownCorruptionCommand(sender, StringMgmt.remFirstArg(args));
+                case "settowncorruption", "settowncorrupt" -> parseSetTownCorruptionCommand(sender, StringMgmt.remFirstArg(args));
                 default -> showHelp(sender);
             }
         } catch (TownyException e) {
@@ -120,6 +129,8 @@ public class TownyAdminPoliticsCommand extends BaseCommand implements TabExecuto
         TownyMessaging.sendMessage(sender, ChatTools.formatCommand("Eg", "/ta politics", "setpp [nation] [amount]", "Set a nation's political power"));
         TownyMessaging.sendMessage(sender, ChatTools.formatCommand("Eg", "/ta politics", "addcorruption [nation] [amount]", "Add corruption to a nation"));
         TownyMessaging.sendMessage(sender, ChatTools.formatCommand("Eg", "/ta politics", "setcorruption [nation] [amount]", "Set a nation's corruption level"));
+        TownyMessaging.sendMessage(sender, ChatTools.formatCommand("Eg", "/ta politics", "addtowncorruption [town] [amount]", "Add corruption to a town"));
+        TownyMessaging.sendMessage(sender, ChatTools.formatCommand("Eg", "/ta politics", "settowncorruption [town] [amount]", "Set a town's corruption level"));
     }
 
     private void parseReloadCommand(CommandSender sender) {
@@ -274,6 +285,60 @@ public class TownyAdminPoliticsCommand extends BaseCommand implements TabExecuto
         corruptionManager.setCorruption(nation, amount);
 
         TownyMessaging.sendMsg(sender, ChatColor.GREEN + "Set " + nation.getName() + "'s corruption level to " +
+                String.format("%.2f", amount) + "%");
+    }
+
+    private void parseAddTownCorruptionCommand(CommandSender sender, String[] args) throws TownyException {
+        if (args.length < 2) {
+            throw new TownyException("Not enough arguments. Use: /ta politics addtowncorruption [town] [amount]");
+        }
+
+        String townName = args[0];
+        double amount;
+
+        try {
+            amount = Double.parseDouble(args[1]);
+        } catch (NumberFormatException e) {
+            throw new TownyException("Invalid amount: " + args[1] + ". Please provide a valid number.");
+        }
+
+        Town town = TownyUniverse.getInstance().getTown(townName);
+        if (town == null) {
+            throw new TownyException("Town not found: " + townName);
+        }
+
+        // Add corruption to the town
+        townCorruptionManager.addCorruption(town, amount);
+        double currentCorrupt = townCorruptionManager.getCorruption(town);
+
+        TownyMessaging.sendMsg(sender, ChatColor.GREEN + "Added " + String.format("%.2f", amount) +
+                " corruption to " + town.getName() + ". Current corruption: " +
+                String.format("%.2f", currentCorrupt) + "%");
+    }
+
+    private void parseSetTownCorruptionCommand(CommandSender sender, String[] args) throws TownyException {
+        if (args.length < 2) {
+            throw new TownyException("Not enough arguments. Use: /ta politics settowncorruption [town] [amount]");
+        }
+
+        String townName = args[0];
+        double amount;
+
+        try {
+            amount = Double.parseDouble(args[1]);
+        } catch (NumberFormatException e) {
+            throw new TownyException("Invalid amount: " + args[1] + ". Please provide a valid number.");
+        }
+
+        Town town = TownyUniverse.getInstance().getTown(townName);
+        if (town == null) {
+            throw new TownyException("Town not found: " + townName);
+        }
+
+        // Set corruption for the town
+        townCorruptionManager.setCorruption(town, amount);
+
+        TownyMessaging.sendMsg(sender, ChatColor.GREEN + "Set " + town.getName() + "'s corruption level to " +
                 String.format("%.2f", amount) + "%");
     }
 }
