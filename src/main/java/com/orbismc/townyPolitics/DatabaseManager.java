@@ -94,6 +94,20 @@ public class DatabaseManager {
                 logger.fine("Created/verified corruption table");
             }
 
+            // Active Policies table
+            try (PreparedStatement stmt = conn.prepareStatement(
+                    "CREATE TABLE IF NOT EXISTS " + prefix + "active_policies (" +
+                            "id VARCHAR(36) PRIMARY KEY, " +
+                            "policy_id VARCHAR(50) NOT NULL, " +
+                            "entity_uuid VARCHAR(36) NOT NULL, " +
+                            "is_nation BOOLEAN NOT NULL, " +
+                            "enacted_time BIGINT NOT NULL, " +
+                            "expiry_time BIGINT NOT NULL, " +
+                            "INDEX (entity_uuid, is_nation))")) {
+                stmt.executeUpdate();
+                logger.fine("Created/verified active_policies table");
+            }
+
             logger.info("Successfully created/verified all database tables!");
         } catch (SQLException e) {
             logger.severe("Failed to create database tables: " + e.getMessage());

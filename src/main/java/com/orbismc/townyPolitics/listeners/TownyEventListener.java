@@ -13,6 +13,8 @@ import com.orbismc.townyPolitics.managers.GovernmentManager;
 import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
 import com.orbismc.townyPolitics.managers.CorruptionManager;
 import com.orbismc.townyPolitics.managers.TownCorruptionManager;
+import com.orbismc.townyPolitics.policy.ActivePolicy;
+import com.orbismc.townyPolitics.policy.Policy;
 import com.palmergames.adventure.text.Component;
 import com.palmergames.adventure.text.format.NamedTextColor;
 import com.palmergames.adventure.text.event.HoverEvent;
@@ -20,6 +22,9 @@ import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class TownyEventListener implements Listener {
 
@@ -44,11 +49,12 @@ public class TownyEventListener implements Listener {
 
     @EventHandler
     public void onNewDay(NewDayEvent event) {
-        plugin.getLogger().info("Processing new day for political power and corruption...");
+        plugin.getLogger().info("Processing new day for political power, corruption, and policies...");
         ppManager.processNewDay();
         corruptionManager.processNewDay();
         townCorruptionManager.processNewDay();
-        plugin.getLogger().info("Political power and corruption processing complete.");
+        plugin.getPolicyManager().processNewDay();
+        plugin.getLogger().info("Political power, corruption, and policy processing complete.");
     }
 
     public void updateNationPoliticalPowerMetadata(Nation nation) {
@@ -91,6 +97,9 @@ public class TownyEventListener implements Listener {
             // Add Corruption component
             addCorruptionComponent(event, nation);
 
+            // Add Active Policies component
+            addActivePoliciesComponent(event, nation);
+
         } catch (Exception e) {
             plugin.getLogger().warning("Error adding components to nation status screen: " + e.getMessage());
             e.printStackTrace();
@@ -107,6 +116,9 @@ public class TownyEventListener implements Listener {
 
             // Add Corruption component for towns
             addTownCorruptionComponent(event, town);
+
+            // Add Active Policies component for towns
+            addTownActivePoliciesComponent(event, town);
 
         } catch (Exception e) {
             plugin.getLogger().warning("Error adding components to town status screen: " + e.getMessage());
@@ -276,6 +288,54 @@ public class TownyEventListener implements Listener {
     }
 
     /**
+     * Add active policies component to nation status screen
+     *
+     * @param event The event
+     * @param nation The nation
+     */
+    private void addActivePoliciesComponent(NationStatusScreenEvent event, Nation nation) {
+        Set<ActivePolicy> activePolicies = plugin.getPolicyManager().getActivePolicies(nation);
+
+        if (activePolicies.isEmpty()) {
+            return; // No active policies to display
+        }
+
+        // Create hover text component
+        Component.Builder hoverTextBuilder = Component.text("Active Policies")
+                .color(NamedTextColor.DARK_GREEN)
+                .append(Component.newline())
+                .append(Component.newline());
+
+        // Add each active policy to the hover text
+        for (ActivePolicy activePolicy : activePolicies) {
+            Policy policy = plugin.getPolicyManager().getPolicy(activePolicy.getPolicyId());
+            if (policy == null) continue;
+
+            hoverTextBuilder.append(Component.text("• " + policy.getName())
+                            .color(NamedTextColor.GREEN))
+                    .append(Component.text(" (" + activePolicy.formatRemainingTime() + ")")
+                            .color(NamedTextColor.GRAY))
+                    .append(Component.newline());
+        }
+
+        Component hoverText = hoverTextBuilder.build();
+
+        // Create the Policies component
+        Component openBracket = Component.text("[").color(NamedTextColor.GRAY);
+        Component policiesText = Component.text("Policies (" + activePolicies.size() + ")").color(NamedTextColor.BLUE);
+        Component closeBracket = Component.text("]").color(NamedTextColor.GRAY);
+
+        Component policiesComponent = Component.empty()
+                .append(openBracket)
+                .append(policiesText)
+                .append(closeBracket)
+                .hoverEvent(HoverEvent.showText(hoverText));
+
+        // Add to status screen
+        event.getStatusScreen().addComponentOf("policies_display", policiesComponent);
+    }
+
+    /**
      * Add town corruption component to town status screen
      *
      * @param event The event
@@ -346,6 +406,54 @@ public class TownyEventListener implements Listener {
 
         // Add to status screen
         event.getStatusScreen().addComponentOf("town_corruption_display", corruptComponent);
+    }
+
+    /**
+     * Add active policies component to town status screen
+     *
+     * @param event The event
+     * @param town The town
+     */
+    private void addTownActivePoliciesComponent(TownStatusScreenEvent event, Town town) {
+        Set<ActivePolicy> activePolicies = plugin.getPolicyManager().getActivePolicies(town);
+
+        if (activePolicies.isEmpty()) {
+            return; // No active policies to display
+        }
+
+        // Create hover text component
+        Component.Builder hoverTextBuilder = Component.text("Active Policies")
+                .color(NamedTextColor.DARK_GREEN)
+                .append(Component.newline())
+                .append(Component.newline());
+
+        // Add each active policy to the hover text
+        for (ActivePolicy activePolicy : activePolicies) {
+            Policy policy = plugin.getPolicyManager().getPolicy(activePolicy.getPolicyId());
+            if (policy == null) continue;
+
+            hoverTextBuilder.append(Component.text("• " + policy.getName())
+                            .color(NamedTextColor.GREEN))
+                    .append(Component.text(" (" + activePolicy.formatRemainingTime() + ")")
+                            .color(NamedTextColor.GRAY))
+                    .append(Component.newline());
+        }
+
+        Component hoverText = hoverTextBuilder.build();
+
+        // Create the Policies component
+        Component openBracket = Component.text("[").color(NamedTextColor.GRAY);
+        Component policiesText = Component.text("Policies (" + activePolicies.size() + ")").color(NamedTextColor.BLUE);
+        Component closeBracket = Component.text("]").color(NamedTextColor.GRAY);
+
+        Component policiesComponent = Component.empty()
+                .append(openBracket)
+                .append(policiesText)
+                .append(closeBracket)
+                .hoverEvent(HoverEvent.showText(hoverText));
+
+        // Add to status screen
+        event.getStatusScreen().addComponentOf("town_policies_display", policiesComponent);
     }
 
     /**

@@ -11,6 +11,9 @@ import com.orbismc.townyPolitics.managers.*;
 import com.orbismc.townyPolitics.storage.*;
 import com.orbismc.townyPolitics.storage.mysql.*;
 import com.orbismc.townyPolitics.utils.DebugLogger;
+import com.orbismc.townyPolitics.policy.ActivePolicy;
+import com.orbismc.townyPolitics.policy.Policy;
+import com.orbismc.townyPolitics.policy.PolicyEffects;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -30,6 +33,7 @@ public class TownyPolitics extends JavaPlugin {
 
     // Common managers
     private TaxationManager taxationManager;
+    private PolicyManager policyManager;
 
     // Storage interfaces
     private IPoliticalPowerStorage ppStorage;
@@ -37,6 +41,7 @@ public class TownyPolitics extends JavaPlugin {
     private ICorruptionStorage nationCorruptionStorage;
     private ITownGovernmentStorage townGovStorage;
     private ITownCorruptionStorage townCorruptionStorage;
+    private IPolicyStorage policyStorage;
 
     // Listeners and utilities
     private TownyEventListener eventListener;
@@ -73,6 +78,8 @@ public class TownyPolitics extends JavaPlugin {
             nationCorruptionStorage = new MySQLCorruptionStorage(this, dbManager);
             townGovStorage = new MySQLTownGovernmentStorage(this, dbManager);
             townCorruptionStorage = new MySQLTownCorruptionStorage(this, dbManager);
+            policyStorage = new MySQLPolicyStorage(this, dbManager);
+            debugLogger.info("Initialized MySQL Policy Storage");
         } else {
             // Using YAML
             debugLogger.info("Using YAML for data storage");
@@ -81,6 +88,8 @@ public class TownyPolitics extends JavaPlugin {
             nationCorruptionStorage = new YamlCorruptionStorage(this);
             townGovStorage = new YamlTownGovernmentStorage(this);
             townCorruptionStorage = new YamlTownCorruptionStorage(this);
+            policyStorage = new YamlPolicyStorage(this);
+            debugLogger.info("Initialized YAML Policy Storage");
         }
 
         // Initialize nation managers
@@ -94,6 +103,10 @@ public class TownyPolitics extends JavaPlugin {
 
         // Initialize taxation manager (depends on corruption manager)
         taxationManager = new TaxationManager(this, nationCorruptionManager);
+
+        // Initialize policy manager
+        policyManager = new PolicyManager(this, policyStorage);
+        debugLogger.info("Initialized Policy Manager");
 
         // Initialize and register listener
         eventListener = new TownyEventListener(this, ppManager, nationCorruptionManager);
@@ -163,10 +176,24 @@ public class TownyPolitics extends JavaPlugin {
             config.addDefault("town_government.change_cooldown", 15);
         }
 
+        // Policy System Settings
+        if (!config.contains("policies")) {
+            config.createSection("policies");
+            config.addDefault("policies.cooldown_days", 3);
+
+            // Create custom policies section
+            config.createSection("policies.available");
+        }
+
         // Save updated config
         saveConfig();
 
         getLogger().info("Config loaded and updated with new settings");
+
+        // Save policies.yml if it doesn't exist
+        if (!new File(getDataFolder(), "policies.yml").exists()) {
+            saveResource("policies.yml", false);
+        }
     }
 
     @Override
@@ -186,6 +213,11 @@ public class TownyPolitics extends JavaPlugin {
         }
         if (townCorruptionStorage != null) {
             townCorruptionStorage.saveAll();
+        }
+
+        // Save policy data
+        if (policyStorage != null) {
+            policyStorage.saveAll();
         }
 
         // Close database connections
@@ -226,6 +258,12 @@ public class TownyPolitics extends JavaPlugin {
             townCorruptionManager.loadData();
         }
 
+        // Reload policy data
+        if (policyManager != null) {
+            policyManager.loadPolicies();
+            policyManager.loadActivePolicies();
+        }
+
         debugLogger.info("Configuration reloaded");
     }
 
@@ -243,6 +281,10 @@ public class TownyPolitics extends JavaPlugin {
             // Create command executors for towns
             GovernmentCommand townGovCommand = new GovernmentCommand(this, govManager, "town");
 
+            // Create command executors for policies
+            PolicyCommand townPolicyCommand = new PolicyCommand(this, policyManager, "town");
+            PolicyCommand nationPolicyCommand = new PolicyCommand(this, policyManager, "nation");
+
             // Register nation commands
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "government", nationGovCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "gov", nationGovCommand);
@@ -250,10 +292,12 @@ public class TownyPolitics extends JavaPlugin {
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "o", nationOverviewCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "corruption", nationCorruptionCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "pp", ppCommand);
+            TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "policy", nationPolicyCommand);
 
             // Register town commands
             TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "government", townGovCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "gov", townGovCommand);
+            TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "policy", townPolicyCommand);
 
             // Register TownyAdmin command
             new TownyAdminPoliticsCommand(this, govManager, ppManager, nationCorruptionManager);
@@ -298,6 +342,10 @@ public class TownyPolitics extends JavaPlugin {
 
     public TaxationManager getTaxationManager() {
         return taxationManager;
+    }
+
+    public PolicyManager getPolicyManager() {
+        return policyManager;
     }
 
     public DatabaseManager getDatabaseManager() {

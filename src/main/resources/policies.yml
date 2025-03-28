@@ -1,0 +1,185 @@
+# TownyPolitics Policies Configuration
+
+policies:
+  # Cooldown between policy changes (in days)
+  cooldown_days: 3
+
+  # Available policies
+  available:
+    # Economic Policies
+    progressive_taxation:
+      name: "Progressive Taxation"
+      description: "Implement progressive tax rates to generate more revenue but with increased bureaucracy."
+      cost: 15.0
+      duration: 14
+      type: ECONOMIC
+      allowed_governments:
+        - DIRECT_DEMOCRACY
+        - REPUBLIC
+        - CONSTITUTIONAL_MONARCHY
+      min_political_power: 25.0
+      max_corruption: 75.0
+      effects:
+        tax: 1.15               # +15% max taxation
+        corruption_gain: 1.02    # +2% corruption gain
+        spending: 1.05          # +5% spending costs
+
+    trade_subsidies:
+      name: "Trade Subsidies"
+      description: "Subsidize merchants and trade routes to boost the economy at the cost of increased corruption."
+      cost: 20.0
+      duration: 14
+      type: ECONOMIC
+      allowed_governments: []   # All government types allowed
+      min_political_power: 30.0
+      max_corruption: 80.0
+      effects:
+        trade: 1.20             # +20% trade income
+        economy: 1.10           # +10% economy boost
+        corruption_gain: 1.10   # +10% corruption gain
+
+    public_works:
+      name: "Public Works Program"
+      description: "Invest in infrastructure and public projects to reduce long-term corruption."
+      cost: 35.0
+      duration: 30
+      type: ECONOMIC
+      allowed_governments: []   # All government types allowed
+      min_political_power: 50.0
+      max_corruption: 90.0
+      effects:
+        spending: 1.15          # +15% spending costs
+        corruption_gain: 0.80   # -20% corruption gain
+
+    # Political Policies
+    propaganda_campaign:
+      name: "Propaganda Campaign"
+      description: "Launch an extensive propaganda campaign to boost political power gain at the cost of increased corruption."
+      cost: 25.0
+      duration: 14
+      type: POLITICAL
+      allowed_governments:
+        - AUTOCRACY
+        - OLIGARCHY
+      min_political_power: 30.0
+      max_corruption: 80.0
+      effects:
+        political_power_gain: 1.25  # +25% political power gain
+        corruption_gain: 1.15       # +15% corruption gain
+
+    transparency_initiative:
+      name: "Transparency Initiative"
+      description: "Implement transparency measures to reduce corruption at the cost of maximum political power."
+      cost: 20.0
+      duration: 14
+      type: POLITICAL
+      allowed_governments:
+        - DIRECT_DEMOCRACY
+        - REPUBLIC
+        - CONSTITUTIONAL_MONARCHY
+      min_political_power: 25.0
+      max_corruption: 100.0
+      effects:
+        corruption_gain: 0.70       # -30% corruption gain
+        max_political_power: 0.90   # -10% max political power
+
+    foreign_aid:
+      name: "Foreign Aid Program"
+      description: "Provide aid to other nations to improve diplomatic relations at the cost of resources."
+      cost: 25.0
+      duration: 14
+      type: POLITICAL
+      allowed_governments: []   # All government types allowed
+      min_political_power: 40.0
+      max_corruption: 70.0
+      effects:
+        resource_output: 0.90   # -10% resource output
+        corruption_gain: 0.90   # -10% corruption gain
+
+    # Military Policies
+    conscription:
+      name: "Conscription Program"
+      description: "Implement mandatory military service to improve defense but increase corruption."
+      cost: 30.0
+      duration: 14
+      type: MILITARY
+      allowed_governments:
+        - AUTOCRACY
+        - CONSTITUTIONAL_MONARCHY
+      min_political_power: 40.0
+      max_corruption: 80.0
+      effects:
+        corruption_gain: 1.10   # +10% corruption gain
+        # Military strength would be handled in a future update
+
+    defense_pact:
+      name: "Defense Pact"
+      description: "Form a defensive alliance with another nation, requiring ongoing political power maintenance."
+      cost: 40.0
+      duration: 30
+      type: MILITARY
+      allowed_governments: []   # All government types allowed
+      min_political_power: 75.0
+      max_corruption: 60.0
+      effects:
+        political_power_gain: 0.90  # -10% political power gain
+        # Alliance mechanics would be handled in a future update
+
+    war_economy:
+      name: "War Economy"
+      description: "Convert the economy to a war footing, boosting resource production at the cost of higher taxes."
+      cost: 45.0
+      duration: 14
+      type: MILITARY
+      allowed_governments: []   # All government types allowed
+      min_political_power: 60.0
+      max_corruption: 70.0
+      effects:
+        resource_output: 1.20   # +20% resource output
+        tax: 1.10               # +10% taxation
+
+    # Social Policies
+    education_reform:
+      name: "Education Reform"
+      description: "Invest in education to gradually reduce corruption over time."
+      cost: 25.0
+      duration: 30
+      type: SOCIAL
+      allowed_governments:
+        - REPUBLIC
+        - DIRECT_DEMOCRACY
+        - CONSTITUTIONAL_MONARCHY
+      min_political_power: 35.0
+      max_corruption: 90.0
+      effects:
+        corruption_gain: 0.85   # -15% corruption gain
+        spending: 1.10          # +10% spending costs
+
+    religious_mandate:
+      name: "Religious Mandate"
+      description: "Establish a state religion to unify the populace but increase corruption."
+      cost: 20.0
+      duration: -1             # Permanent policy
+      type: SOCIAL
+      allowed_governments:
+        - AUTOCRACY
+        - OLIGARCHY
+        - CONSTITUTIONAL_MONARCHY
+      min_political_power: 40.0
+      max_corruption: 80.0
+      effects:
+        corruption_gain: 1.05   # +5% corruption gain
+        political_power_gain: 1.10  # +10% political power gain
+
+    cultural_exchange:
+      name: "Cultural Exchange Program"
+      description: "Promote cultural exchange to reduce foreign nation penalties."
+      cost: 15.0
+      duration: 14
+      type: SOCIAL
+      allowed_governments: []   # All government types allowed
+      min_political_power: 20.0
+      max_corruption: 70.0
+      effects:
+        corruption_gain: 0.95   # -5% corruption gain
+        # Foreign relations would be handled in a future update

@@ -3,6 +3,7 @@ package com.orbismc.townyPolitics.managers;
 import com.palmergames.bukkit.towny.object.Nation;
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.listeners.TownyEventListener;
+import com.orbismc.townyPolitics.policy.PolicyEffects;
 import com.orbismc.townyPolitics.storage.IPoliticalPowerStorage;
 import com.orbismc.townyPolitics.utils.DelegateLogger;
 
@@ -118,8 +119,16 @@ public class PoliticalPowerManager {
             ppGain = Math.min(maxGain, 2.0 * baseGain + Math.log10(residents / 10.0) * 2 * baseGain);
         }
 
-        // Apply any modifiers from government type or other systems
-        // This would be implemented in the future
+        // Apply corruption modifiers
+        CorruptionManager corruptionManager = plugin.getCorruptionManager();
+        double ppModifier = corruptionManager.getPoliticalPowerModifier(nation);
+        ppGain *= ppModifier;
+
+        // Apply policy modifiers
+        if (plugin.getPolicyManager() != null) {
+            PolicyEffects effects = plugin.getPolicyManager().getCombinedPolicyEffects(nation);
+            ppGain *= effects.getPoliticalPowerGainModifier();
+        }
 
         double finalGain = Math.min(maxGain, Math.max(minGain, ppGain));
 

@@ -4,6 +4,7 @@ import com.palmergames.bukkit.towny.object.Nation;
 import com.palmergames.bukkit.towny.object.Town;
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.government.GovernmentType;
+import com.orbismc.townyPolitics.policy.PolicyEffects;
 import com.orbismc.townyPolitics.storage.ICorruptionStorage;
 import com.orbismc.townyPolitics.utils.DebugLogger;
 
@@ -238,13 +239,21 @@ public class CorruptionManager {
         double securitySpending = 0.0; // Will be implemented in future
         double securityModifier = 1.0 - (securitySpending * 0.1); // 10% reduction per level
 
+        // Policy effects
+        double policyModifier = 1.0;
+        if (plugin.getPolicyManager() != null) {
+            PolicyEffects effects = plugin.getPolicyManager().getCombinedPolicyEffects(nation);
+            policyModifier = effects.getCorruptionGainModifier();
+        }
+
         // Calculate final gain (minimum 0)
-        double finalGain = Math.max(0, baseGain * govModifier * securityModifier);
+        double finalGain = Math.max(0, baseGain * govModifier * securityModifier * policyModifier);
 
         debugLogger.fine("Daily corruption gain for " + nation.getName() +
                 ": base=" + baseGain +
                 ", govMod=" + govModifier +
                 ", securityMod=" + securityModifier +
+                ", policyMod=" + policyModifier +
                 ", final=" + finalGain);
 
         return finalGain;
