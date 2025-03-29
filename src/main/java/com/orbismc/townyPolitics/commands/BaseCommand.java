@@ -1,4 +1,4 @@
-package com.orbismc.townyPolitics.commands;
+package com.orbismc.townyPolitics.commands.base;
 
 import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.object.Nation;
@@ -14,7 +14,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 

@@ -2,7 +2,7 @@ package com.orbismc.townyPolitics.managers;
 
 import com.palmergames.bukkit.towny.object.Nation;
 import com.orbismc.townyPolitics.TownyPolitics;
-import com.orbismc.townyPolitics.listeners.TownyEventListener;
+import com.orbismc.townyPolitics.listeners.CoreTownyEventListener;
 import com.orbismc.townyPolitics.policy.PolicyEffects;
 import com.orbismc.townyPolitics.storage.IPoliticalPowerStorage;
 import com.orbismc.townyPolitics.utils.DelegateLogger;
@@ -16,7 +16,7 @@ public class PoliticalPowerManager {
     private final TownyPolitics plugin;
     private final IPoliticalPowerStorage storage;
     private final Map<UUID, Double> nationPP; // Cache of nation UUIDs to their political power
-    private TownyEventListener eventListener;
+    private CoreTownyEventListener eventListener;
     private final DelegateLogger logger;
 
     // Maximum political power limit
@@ -32,7 +32,7 @@ public class PoliticalPowerManager {
         loadData();
     }
 
-    public void setEventListener(TownyEventListener eventListener) {
+    public void setEventListener(CoreTownyEventListener eventListener) {
         this.eventListener = eventListener;
     }
 
