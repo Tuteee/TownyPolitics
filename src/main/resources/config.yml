@@ -129,6 +129,17 @@ town_government:
   # Cooldown between government changes (in days)
   change_cooldown: 15
 
+# Town Political Power Settings
+town_political_power:
+  # The base daily political power gain for towns
+  base_gain: 0.8
+
+  # The maximum daily political power gain for any town
+  max_daily_gain: 4.0
+
+  # The minimum daily political power gain for any town with at least one resident
+  min_daily_gain: 0.8
+
 # Database Settings
 database:
   use_mysql: false  # Set to true to use MySQL instead of YAML files
