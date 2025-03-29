@@ -2,6 +2,7 @@ package com.orbismc.townyPolitics.managers;
 
 import com.palmergames.bukkit.towny.object.Town;
 import com.orbismc.townyPolitics.TownyPolitics;
+import com.orbismc.townyPolitics.policy.PolicyEffects;
 import com.orbismc.townyPolitics.storage.ITownPoliticalPowerStorage;
 import com.orbismc.townyPolitics.utils.DelegateLogger;
 
@@ -16,8 +17,8 @@ public class TownPoliticalPowerManager {
     private final Map<UUID, Double> townPP; // Cache of town UUIDs to their political power
     private final DelegateLogger logger;
 
-    // Maximum political power limit
-    private final double MAX_PP = 1000.0;
+    // Maximum political power limit for towns
+    private final double MAX_PP = 500.0;
 
     public TownPoliticalPowerManager(TownyPolitics plugin, ITownPoliticalPowerStorage storage) {
         this.plugin = plugin;
@@ -86,9 +87,9 @@ public class TownPoliticalPowerManager {
 
     public double calculateDailyPPGain(Town town) {
         int residents = town.getResidents().size();
-        double baseGain = plugin.getConfig().getDouble("town_political_power.base_gain", 0.8);
-        double maxGain = plugin.getConfig().getDouble("town_political_power.max_daily_gain", 4.0);
-        double minGain = plugin.getConfig().getDouble("town_political_power.min_daily_gain", 0.8);
+        double baseGain = plugin.getConfig().getDouble("town_political_power.base_gain", 0.5);
+        double maxGain = plugin.getConfig().getDouble("town_political_power.max_daily_gain", 3.0);
+        double minGain = plugin.getConfig().getDouble("town_political_power.min_daily_gain", 0.5);
 
         double ppGain;
         if (residents <= 0) {
@@ -96,15 +97,44 @@ public class TownPoliticalPowerManager {
         } else if (residents == 1) {
             ppGain = baseGain; // 1 resident = base_gain PP
         } else if (residents <= 5) {
-            ppGain = baseGain + (residents - 1) * 0.1 * baseGain;
+            ppGain = baseGain + (residents - 1) * 0.125 * baseGain;
         } else if (residents <= 10) {
-            ppGain = 1.4 * baseGain + (residents - 5) * 0.08 * baseGain;
+            ppGain = 1.5 * baseGain + (residents - 5) * 0.1 * baseGain;
         } else {
-            ppGain = Math.min(maxGain, 1.8 * baseGain + Math.log10(residents / 10.0) * 1.5 * baseGain);
+            ppGain = Math.min(maxGain, 2.0 * baseGain + Math.log10(residents / 10.0) * 2 * baseGain);
         }
 
-        // Apply any modifiers from government type or other systems
-        // This would be implemented in the future
+        // Apply corruption modifiers
+        TownCorruptionManager townCorruptionManager = plugin.getTownCorruptionManager();
+        if (townCorruptionManager != null) {
+            double ppModifier = 1.0; // Default modifier
+            int corruptionLevel = townCorruptionManager.getCorruptionThresholdLevel(town);
+
+            // Apply modifiers based on corruption level (similar to nation system)
+            if (corruptionLevel >= 2) { // Medium+ corruption affects PP gain
+                if (corruptionLevel == 2) ppModifier = 0.90; // -10% PP gain
+                else if (corruptionLevel == 3) ppModifier = 0.75; // -25% PP gain
+                else if (corruptionLevel == 4) ppModifier = 0.50; // -50% PP gain
+            }
+
+            ppGain *= ppModifier;
+        }
+
+        // Apply policy modifiers if applicable
+        if (plugin.getPolicyManager() != null) {
+            PolicyEffects effects = plugin.getPolicyManager().getCombinedPolicyEffects(town);
+            ppGain *= effects.getPoliticalPowerGainModifier();
+        }
+
+        // Apply nation bonus - towns in nations with political power get a small bonus
+        if (town.hasNation()) {
+            try {
+                double nationBonus = plugin.getConfig().getDouble("town_political_power.nation_bonus", 0.1);
+                ppGain *= (1.0 + nationBonus);
+            } catch (Exception e) {
+                logger.warning("Error applying nation bonus: " + e.getMessage());
+            }
+        }
 
         double finalGain = Math.min(maxGain, Math.max(minGain, ppGain));
 

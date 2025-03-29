@@ -325,6 +325,8 @@ public class PolicyManager {
         }
     }
 
+// Update the enactPolicy method in the PolicyManager class
+
     /**
      * Enact a policy for a town
      * @return true if successful, false if failed
@@ -372,6 +374,26 @@ public class PolicyManager {
             }
         }
 
+        // Get town political power manager
+        TownPoliticalPowerManager townPpManager = plugin.getTownPPManager();
+        if (townPpManager != null) {
+            // Check if town has enough political power to afford the policy
+            double currentPP = townPpManager.getPoliticalPower(town);
+            if (currentPP < policy.getCost()) {
+                logger.fine("Town " + town.getName() + " cannot afford policy " + policyId +
+                        " (cost: " + policy.getCost() + ", available: " + currentPP + ")");
+                return false;
+            }
+
+            // Deduct political power
+            townPpManager.removePoliticalPower(town, policy.getCost());
+            logger.info("Deducted " + policy.getCost() + " political power from town " +
+                    town.getName() + " for policy: " + policy.getName());
+        } else {
+            // If town political power system isn't enabled, allow the policy without cost
+            logger.warning("Town political power system not enabled, allowing policy without cost");
+        }
+
         // Create active policy
         ActivePolicy activePolicy = new ActivePolicy(policyId, town.getUUID(), false, policy.getDuration());
 
@@ -389,7 +411,6 @@ public class PolicyManager {
         logger.info("Town " + town.getName() + " enacted policy: " + policy.getName());
         return true;
     }
-
     /**
      * Enact a policy for a nation
      * @return true if successful, false if failed

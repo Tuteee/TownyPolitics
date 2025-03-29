@@ -4,9 +4,11 @@ import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.storage.YamlCorruptionStorage;
 import com.orbismc.townyPolitics.storage.YamlGovernmentStorage;
 import com.orbismc.townyPolitics.storage.YamlPoliticalPowerStorage;
+import com.orbismc.townyPolitics.storage.YamlTownPoliticalPowerStorage;
 import com.orbismc.townyPolitics.storage.mysql.MySQLCorruptionStorage;
 import com.orbismc.townyPolitics.storage.mysql.MySQLGovernmentStorage;
 import com.orbismc.townyPolitics.storage.mysql.MySQLPoliticalPowerStorage;
+import com.orbismc.townyPolitics.storage.mysql.MySQLTownPoliticalPowerStorage;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -35,15 +37,21 @@ public class MigrationCommand implements CommandExecutor {
             YamlPoliticalPowerStorage yamlPP = new YamlPoliticalPowerStorage(plugin);
             YamlGovernmentStorage yamlGov = new YamlGovernmentStorage(plugin);
             YamlCorruptionStorage yamlCorruption = new YamlCorruptionStorage(plugin);
+            YamlTownPoliticalPowerStorage yamlTownPP = new YamlTownPoliticalPowerStorage(plugin);
 
             // Get MySQL storage
             MySQLPoliticalPowerStorage mysqlPP = new MySQLPoliticalPowerStorage(plugin, plugin.getDatabaseManager());
             MySQLGovernmentStorage mysqlGov = new MySQLGovernmentStorage(plugin, plugin.getDatabaseManager());
             MySQLCorruptionStorage mysqlCorruption = new MySQLCorruptionStorage(plugin, plugin.getDatabaseManager());
+            MySQLTownPoliticalPowerStorage mysqlTownPP = new MySQLTownPoliticalPowerStorage(plugin, plugin.getDatabaseManager());
 
             // Migrate Political Power
             yamlPP.loadAllPP().forEach(mysqlPP::savePP);
-            sender.sendMessage(ChatColor.GREEN + "Migrated Political Power data");
+            sender.sendMessage(ChatColor.GREEN + "Migrated Nation Political Power data");
+
+            // Migrate Town Political Power
+            yamlTownPP.loadAllPP().forEach(mysqlTownPP::savePP);
+            sender.sendMessage(ChatColor.GREEN + "Migrated Town Political Power data");
 
             // Migrate Government data
             yamlGov.loadAllGovernments(true).forEach((uuid, type) ->

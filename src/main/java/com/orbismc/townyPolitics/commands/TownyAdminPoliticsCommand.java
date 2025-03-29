@@ -18,6 +18,7 @@ import com.orbismc.townyPolitics.managers.CorruptionManager;
 import com.orbismc.townyPolitics.managers.GovernmentManager;
 import com.orbismc.townyPolitics.managers.PoliticalPowerManager;
 import com.orbismc.townyPolitics.managers.TownCorruptionManager;
+import com.orbismc.townyPolitics.managers.TownPoliticalPowerManager;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -35,7 +36,7 @@ public class TownyAdminPoliticsCommand extends BaseCommand implements TabExecuto
 
     private static final List<String> townyPoliticsAdminTabCompletes = Arrays.asList(
             "setgovernment", "addpp", "setpp", "addcorruption", "setcorruption",
-            "addtowncorruption", "settowncorruption", "reload");
+            "addtowncorruption", "settowncorruption", "addtownpp", "settownpp", "reload");
 
     private final TownyPolitics plugin;
     private final GovernmentManager govManager;
@@ -70,7 +71,8 @@ public class TownyAdminPoliticsCommand extends BaseCommand implements TabExecuto
                         args[0].equalsIgnoreCase("addcorruption") || args[0].equalsIgnoreCase("setcorruption")) {
                     return getTownyStartingWith(args[1], "n");
                 } else if (args[0].equalsIgnoreCase("addtowncorruption") || args[0].equalsIgnoreCase("settowncorruption") ||
-                        args[0].equalsIgnoreCase("addtowncorrupt") || args[0].equalsIgnoreCase("settowncorrupt")) {
+                        args[0].equalsIgnoreCase("addtowncorrupt") || args[0].equalsIgnoreCase("settowncorrupt") ||
+                        args[0].equalsIgnoreCase("addtownpp") || args[0].equalsIgnoreCase("settownpp")) {
                     return getTownyStartingWith(args[1], "t");
                 }
                 break;
@@ -111,6 +113,8 @@ public class TownyAdminPoliticsCommand extends BaseCommand implements TabExecuto
                 case "setcorruption", "setcorrupt" -> parseSetCorruptionCommand(sender, StringMgmt.remFirstArg(args));
                 case "addtowncorruption", "addtowncorrupt" -> parseAddTownCorruptionCommand(sender, StringMgmt.remFirstArg(args));
                 case "settowncorruption", "settowncorrupt" -> parseSetTownCorruptionCommand(sender, StringMgmt.remFirstArg(args));
+                case "addtownpp", "addtownpoliticalpower" -> parseAddTownPPCommand(sender, StringMgmt.remFirstArg(args));
+                case "settownpp", "settownpoliticalpower" -> parseSetTownPPCommand(sender, StringMgmt.remFirstArg(args));
                 default -> showHelp(sender);
             }
         } catch (TownyException e) {
@@ -131,6 +135,8 @@ public class TownyAdminPoliticsCommand extends BaseCommand implements TabExecuto
         TownyMessaging.sendMessage(sender, ChatTools.formatCommand("Eg", "/ta politics", "setcorruption [nation] [amount]", "Set a nation's corruption level"));
         TownyMessaging.sendMessage(sender, ChatTools.formatCommand("Eg", "/ta politics", "addtowncorruption [town] [amount]", "Add corruption to a town"));
         TownyMessaging.sendMessage(sender, ChatTools.formatCommand("Eg", "/ta politics", "settowncorruption [town] [amount]", "Set a town's corruption level"));
+        TownyMessaging.sendMessage(sender, ChatTools.formatCommand("Eg", "/ta politics", "addtownpp [town] [amount]", "Add political power to a town"));
+        TownyMessaging.sendMessage(sender, ChatTools.formatCommand("Eg", "/ta politics", "settownpp [town] [amount]", "Set a town's political power"));
     }
 
     private void parseReloadCommand(CommandSender sender) {
@@ -340,5 +346,71 @@ public class TownyAdminPoliticsCommand extends BaseCommand implements TabExecuto
 
         TownyMessaging.sendMsg(sender, ChatColor.GREEN + "Set " + town.getName() + "'s corruption level to " +
                 String.format("%.2f", amount) + "%");
+    }
+
+    private void parseAddTownPPCommand(CommandSender sender, String[] args) throws TownyException {
+        if (args.length < 2) {
+            throw new TownyException("Not enough arguments. Use: /ta politics addtownpp [town] [amount]");
+        }
+
+        String townName = args[0];
+        double amount;
+
+        try {
+            amount = Double.parseDouble(args[1]);
+        } catch (NumberFormatException e) {
+            throw new TownyException("Invalid amount: " + args[1] + ". Please provide a valid number.");
+        }
+
+        Town town = TownyUniverse.getInstance().getTown(townName);
+        if (town == null) {
+            throw new TownyException("Town not found: " + townName);
+        }
+
+        // Get town PP manager
+        TownPoliticalPowerManager townPpManager = plugin.getTownPPManager();
+        if (townPpManager == null) {
+            throw new TownyException("Town political power system is not enabled.");
+        }
+
+        // Add political power to the town
+        townPpManager.addPoliticalPower(town, amount);
+        double currentPP = townPpManager.getPoliticalPower(town);
+
+        TownyMessaging.sendMsg(sender, ChatColor.GREEN + "Added " + String.format("%.2f", amount) +
+                " political power to " + town.getName() + ". Current PP: " +
+                String.format("%.2f", currentPP));
+    }
+
+    private void parseSetTownPPCommand(CommandSender sender, String[] args) throws TownyException {
+        if (args.length < 2) {
+            throw new TownyException("Not enough arguments. Use: /ta politics settownpp [town] [amount]");
+        }
+
+        String townName = args[0];
+        double amount;
+
+        try {
+            amount = Double.parseDouble(args[1]);
+        } catch (NumberFormatException e) {
+            throw new TownyException("Invalid amount: " + args[1] + ". Please provide a valid number.");
+        }
+
+        Town town = TownyUniverse.getInstance().getTown(townName);
+        if (town == null) {
+            throw new TownyException("Town not found: " + townName);
+        }
+
+        // Get town PP manager
+        TownPoliticalPowerManager townPpManager = plugin.getTownPPManager();
+        if (townPpManager == null) {
+            throw new TownyException("Town political power system is not enabled.");
+        }
+
+        // Set political power for the town
+        townPpManager.setPoliticalPower(town, amount);
+
+        TownyMessaging.sendMsg(sender, ChatColor.GREEN + "Set " + town.getName() + "'s political power to " +
+                String.format("%.2f", amount));
     }
 }

@@ -1,8 +1,8 @@
 package com.orbismc.townyPolitics.storage.mysql;
 
-import com.orbismc.townyPolitics.DatabaseManager;
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.storage.ITownPoliticalPowerStorage;
+import com.orbismc.townyPolitics.DatabaseManager;
 import com.orbismc.townyPolitics.utils.DelegateLogger;
 
 import java.sql.Connection;

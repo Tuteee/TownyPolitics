@@ -74,6 +74,15 @@ public class DatabaseManager {
                 logger.fine("Created/verified political_power table");
             }
 
+            // Town Political Power table
+            try (PreparedStatement stmt = conn.prepareStatement(
+                    "CREATE TABLE IF NOT EXISTS " + prefix + "town_political_power (" +
+                            "town_uuid VARCHAR(36) PRIMARY KEY, " +
+                            "power_amount DOUBLE NOT NULL)")) {
+                stmt.executeUpdate();
+                logger.fine("Created/verified town_political_power table");
+            }
+
             // Governments table
             try (PreparedStatement stmt = conn.prepareStatement(
                     "CREATE TABLE IF NOT EXISTS " + prefix + "governments (" +

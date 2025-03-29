@@ -2,8 +2,8 @@ package com.orbismc.townyPolitics.commands;
 
 import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.exceptions.NotRegisteredException;
-import com.palmergames.bukkit.towny.object.Resident;
 import com.palmergames.bukkit.towny.object.Town;
+import com.palmergames.bukkit.towny.object.Resident;
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.managers.TownPoliticalPowerManager;
 import org.bukkit.ChatColor;
@@ -15,12 +15,12 @@ import org.bukkit.entity.Player;
 public class TownPoliticalPowerCommand implements CommandExecutor {
 
     private final TownyPolitics plugin;
-    private final TownPoliticalPowerManager ppManager;
+    private final TownPoliticalPowerManager townPpManager;
     private final TownyAPI townyAPI;
 
-    public TownPoliticalPowerCommand(TownyPolitics plugin, TownPoliticalPowerManager ppManager) {
+    public TownPoliticalPowerCommand(TownyPolitics plugin, TownPoliticalPowerManager townPpManager) {
         this.plugin = plugin;
-        this.ppManager = ppManager;
+        this.townPpManager = townPpManager;
         this.townyAPI = TownyAPI.getInstance();
     }
 
@@ -36,7 +36,6 @@ public class TownPoliticalPowerCommand implements CommandExecutor {
         // Check if player is in a town
         Resident resident;
         try {
-            // Use direct TownyAPI method instead of going through DataSource
             resident = townyAPI.getResident(player.getUniqueId());
 
             if (resident == null) {
@@ -52,13 +51,17 @@ public class TownPoliticalPowerCommand implements CommandExecutor {
                 }
 
                 Town playerTown = resident.getTown();
-                double pp = ppManager.getPoliticalPower(playerTown);
-                double dailyGain = ppManager.calculateDailyPPGain(playerTown);
+                double pp = townPpManager.getPoliticalPower(playerTown);
+                double dailyGain = townPpManager.calculateDailyPPGain(playerTown);
 
                 player.sendMessage(ChatColor.GOLD + "=== " + playerTown.getName() + "'s Political Power ===");
                 player.sendMessage(ChatColor.YELLOW + "Current PP: " + ChatColor.WHITE + String.format("%.2f", pp));
                 player.sendMessage(ChatColor.YELLOW + "Daily Gain: " + ChatColor.WHITE + String.format("%.2f", dailyGain));
                 player.sendMessage(ChatColor.YELLOW + "Residents: " + ChatColor.WHITE + playerTown.getResidents().size());
+
+                // Show info about using political power for policies
+                player.sendMessage(ChatColor.YELLOW + "Use political power to enact town policies with:");
+                player.sendMessage(ChatColor.YELLOW + "/town policy enact <policy_id>");
 
                 return true;
             }
@@ -66,7 +69,6 @@ public class TownPoliticalPowerCommand implements CommandExecutor {
             // If args, show the specified town's PP
             String townName = args[0];
             try {
-                // Use direct TownyAPI method to get town by name
                 Town town = townyAPI.getTown(townName);
 
                 if (town == null) {
@@ -74,8 +76,8 @@ public class TownPoliticalPowerCommand implements CommandExecutor {
                     return true;
                 }
 
-                double pp = ppManager.getPoliticalPower(town);
-                double dailyGain = ppManager.calculateDailyPPGain(town);
+                double pp = townPpManager.getPoliticalPower(town);
+                double dailyGain = townPpManager.calculateDailyPPGain(town);
 
                 player.sendMessage(ChatColor.GOLD + "=== " + town.getName() + "'s Political Power ===");
                 player.sendMessage(ChatColor.YELLOW + "Current PP: " + ChatColor.WHITE + String.format("%.2f", pp));
