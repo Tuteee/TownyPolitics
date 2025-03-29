@@ -18,11 +18,13 @@ public class Policy {
     private final Set<GovernmentType> allowedGovernments;
     private final double minPoliticalPower;
     private final double maxCorruption;
+    private final boolean townOnly;
     private final PolicyEffects effects;
 
     public Policy(String id, String name, String description, double cost, int duration,
                   PolicyType type, Set<GovernmentType> allowedGovernments,
-                  double minPoliticalPower, double maxCorruption, PolicyEffects effects) {
+                  double minPoliticalPower, double maxCorruption,
+                  boolean townOnly, PolicyEffects effects) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -32,7 +34,16 @@ public class Policy {
         this.allowedGovernments = allowedGovernments != null ? allowedGovernments : new HashSet<>();
         this.minPoliticalPower = minPoliticalPower;
         this.maxCorruption = maxCorruption;
+        this.townOnly = townOnly;
         this.effects = effects;
+    }
+
+    // Constructor for backward compatibility
+    public Policy(String id, String name, String description, double cost, int duration,
+                  PolicyType type, Set<GovernmentType> allowedGovernments,
+                  double minPoliticalPower, double maxCorruption, PolicyEffects effects) {
+        this(id, name, description, cost, duration, type, allowedGovernments,
+                minPoliticalPower, maxCorruption, false, effects);
     }
 
     // Getters
@@ -45,6 +56,7 @@ public class Policy {
     public Set<GovernmentType> getAllowedGovernments() { return allowedGovernments; }
     public double getMinPoliticalPower() { return minPoliticalPower; }
     public double getMaxCorruption() { return maxCorruption; }
+    public boolean isTownOnly() { return townOnly; }
     public PolicyEffects getEffects() { return effects; }
 
     /**
@@ -57,12 +69,49 @@ public class Policy {
     }
 
     /**
+     * Returns a description of the policy that includes town-specific effects if present
+     * @return Enhanced description
+     */
+    public String getEnhancedDescription() {
+        StringBuilder description = new StringBuilder(this.description);
+
+        if (this.effects.hasTownEffects()) {
+            description.append("\n\nTown Effects:");
+            if (this.effects.getPlotCostModifier() != 1.0) {
+                description.append("\n• Plot Cost: ").append(formatModifier(this.effects.getPlotCostModifier()));
+            }
+            if (this.effects.getPlotTaxModifier() != 1.0) {
+                description.append("\n• Plot Tax: ").append(formatModifier(this.effects.getPlotTaxModifier()));
+            }
+            if (this.effects.getResidentCapacityModifier() != 1.0) {
+                description.append("\n• Resident Capacity: ").append(formatModifier(this.effects.getResidentCapacityModifier()));
+            }
+            if (this.effects.getUpkeepModifier() != 1.0) {
+                description.append("\n• Town Upkeep: ").append(formatModifier(this.effects.getUpkeepModifier()));
+            }
+            if (this.effects.getTownBlockCostModifier() != 1.0) {
+                description.append("\n• Town Block Cost: ").append(formatModifier(this.effects.getTownBlockCostModifier()));
+            }
+            if (this.effects.getTownBlockBonusModifier() != 1.0) {
+                description.append("\n• Town Block Bonus: ").append(formatModifier(this.effects.getTownBlockBonusModifier()));
+            }
+        }
+
+        return description.toString();
+    }
+
+    private String formatModifier(double value) {
+        return String.format("%+.1f%%", (value - 1.0) * 100);
+    }
+
+    /**
      * Policy type enum to categorize policies
      */
     public enum PolicyType {
         ECONOMIC,
         POLITICAL,
         MILITARY,
-        SOCIAL
+        SOCIAL,
+        URBAN // New type specifically for town development policies
     }
 }

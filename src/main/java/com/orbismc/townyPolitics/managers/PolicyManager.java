@@ -77,6 +77,15 @@ public class PolicyManager {
             loadPoliciesFromConfig(config);
         }
 
+        // Load town policies from town_policies.yml if it exists
+        File townPoliciesFile = new File(plugin.getDataFolder(), "town_policies.yml");
+        if (townPoliciesFile.exists()) {
+            FileConfiguration config = YamlConfiguration.loadConfiguration(townPoliciesFile);
+            loadPoliciesFromConfig(config);
+        } else {
+            logger.info("town_policies.yml file not found. Town policies will use defaults from policies.yml.");
+        }
+
         // Load custom policies from main config
         loadPoliciesFromConfig(plugin.getConfig());
 
@@ -104,6 +113,7 @@ public class PolicyManager {
                 int duration = policySection.getInt("duration", -1);
                 Policy.PolicyType type = Policy.PolicyType.valueOf(
                         policySection.getString("type", "ECONOMIC").toUpperCase());
+                boolean townOnly = policySection.getBoolean("town_only", false);
 
                 // Load allowed governments
                 Set<GovernmentType> allowedGovernments = new HashSet<>();
@@ -133,10 +143,30 @@ public class PolicyManager {
                             .maxPoliticalPowerModifier(effectsSection.getDouble("max_political_power", 1.0))
                             .resourceOutputModifier(effectsSection.getDouble("resource_output", 1.0))
                             .spendingModifier(effectsSection.getDouble("spending", 1.0));
+
+                    // Town-specific effects
+                    if (effectsSection.contains("plot_cost")) {
+                        effectsBuilder.plotCostModifier(effectsSection.getDouble("plot_cost", 1.0));
+                    }
+                    if (effectsSection.contains("plot_tax")) {
+                        effectsBuilder.plotTaxModifier(effectsSection.getDouble("plot_tax", 1.0));
+                    }
+                    if (effectsSection.contains("resident_capacity")) {
+                        effectsBuilder.residentCapacityModifier(effectsSection.getDouble("resident_capacity", 1.0));
+                    }
+                    if (effectsSection.contains("upkeep")) {
+                        effectsBuilder.upkeepModifier(effectsSection.getDouble("upkeep", 1.0));
+                    }
+                    if (effectsSection.contains("town_block_cost")) {
+                        effectsBuilder.townBlockCostModifier(effectsSection.getDouble("town_block_cost", 1.0));
+                    }
+                    if (effectsSection.contains("town_block_bonus")) {
+                        effectsBuilder.townBlockBonusModifier(effectsSection.getDouble("town_block_bonus", 1.0));
+                    }
                 }
 
                 Policy policy = new Policy(policyId, name, description, cost, duration, type,
-                        allowedGovernments, minPoliticalPower, maxCorruption, effectsBuilder.build());
+                        allowedGovernments, minPoliticalPower, maxCorruption, townOnly, effectsBuilder.build());
 
                 availablePolicies.put(policyId, policy);
                 logger.fine("Loaded policy: " + policyId);
@@ -188,6 +218,24 @@ public class PolicyManager {
      */
     public Collection<Policy> getAvailablePolicies() {
         return availablePolicies.values();
+    }
+
+    /**
+     * Get all town-specific policies
+     */
+    public Collection<Policy> getAvailableTownPolicies() {
+        return availablePolicies.values().stream()
+                .filter(policy -> policy.isTownOnly() || policy.getEffects().hasTownEffects())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get all nation-specific policies
+     */
+    public Collection<Policy> getAvailableNationPolicies() {
+        return availablePolicies.values().stream()
+                .filter(policy -> !policy.isTownOnly())
+                .collect(Collectors.toList());
     }
 
     /**
@@ -294,6 +342,12 @@ public class PolicyManager {
 
         Policy policy = getPolicy(policyId);
 
+        // Check if the policy is town-compatible
+        if (!policy.isTownOnly() && !policy.getEffects().hasTownEffects() && !policy.getType().equals(Policy.PolicyType.ECONOMIC)) {
+            logger.fine("Policy " + policyId + " is not compatible with towns");
+            return false;
+        }
+
         // Check if town already has this policy
         if (hasActivePolicy(town, policyId)) {
             logger.fine("Town " + town.getName() + " already has policy: " + policyId);
@@ -309,7 +363,14 @@ public class PolicyManager {
             return false;
         }
 
-        // Additional checks (political power, corruption, etc.) could be added here
+        // Check corruption level if town corruption system is enabled
+        if (plugin.getTownCorruptionManager() != null) {
+            double corruption = plugin.getTownCorruptionManager().getCorruption(town);
+            if (corruption > policy.getMaxCorruption()) {
+                logger.fine("Town " + town.getName() + " has too much corruption for policy: " + policyId);
+                return false;
+            }
+        }
 
         // Create active policy
         ActivePolicy activePolicy = new ActivePolicy(policyId, town.getUUID(), false, policy.getDuration());
@@ -345,6 +406,12 @@ public class PolicyManager {
         }
 
         Policy policy = getPolicy(policyId);
+
+        // Check if policy is town-only
+        if (policy.isTownOnly()) {
+            logger.fine("Policy " + policyId + " is town-only and cannot be enacted by nations");
+            return false;
+        }
 
         // Check if nation already has this policy
         if (hasActivePolicy(nation, policyId)) {
@@ -513,7 +580,7 @@ public class PolicyManager {
     public PolicyEffects getCombinedPolicyEffects(Town town) {
         Set<ActivePolicy> policies = getActivePolicies(town);
 
-        // Base values with no modifiers
+        // Base values with no modifiers (1.0 = no effect)
         double taxModifier = 1.0;
         double tradeModifier = 1.0;
         double economyModifier = 1.0;
@@ -522,6 +589,12 @@ public class PolicyManager {
         double maxPoliticalPowerModifier = 1.0;
         double resourceOutputModifier = 1.0;
         double spendingModifier = 1.0;
+        double plotCostModifier = 1.0;
+        double plotTaxModifier = 1.0;
+        double residentCapacityModifier = 1.0;
+        double upkeepModifier = 1.0;
+        double townBlockCostModifier = 1.0;
+        double townBlockBonusModifier = 1.0;
 
         // Apply each policy's effects
         for (ActivePolicy activePolicy : policies) {
@@ -539,6 +612,14 @@ public class PolicyManager {
             maxPoliticalPowerModifier *= effects.getMaxPoliticalPowerModifier();
             resourceOutputModifier *= effects.getResourceOutputModifier();
             spendingModifier *= effects.getSpendingModifier();
+
+            // Town-specific modifiers
+            plotCostModifier *= effects.getPlotCostModifier();
+            plotTaxModifier *= effects.getPlotTaxModifier();
+            residentCapacityModifier *= effects.getResidentCapacityModifier();
+            upkeepModifier *= effects.getUpkeepModifier();
+            townBlockCostModifier *= effects.getTownBlockCostModifier();
+            townBlockBonusModifier *= effects.getTownBlockBonusModifier();
         }
 
         // Build and return combined effects
@@ -551,6 +632,12 @@ public class PolicyManager {
                 .maxPoliticalPowerModifier(maxPoliticalPowerModifier)
                 .resourceOutputModifier(resourceOutputModifier)
                 .spendingModifier(spendingModifier)
+                .plotCostModifier(plotCostModifier)
+                .plotTaxModifier(plotTaxModifier)
+                .residentCapacityModifier(residentCapacityModifier)
+                .upkeepModifier(upkeepModifier)
+                .townBlockCostModifier(townBlockCostModifier)
+                .townBlockBonusModifier(townBlockBonusModifier)
                 .build();
     }
 

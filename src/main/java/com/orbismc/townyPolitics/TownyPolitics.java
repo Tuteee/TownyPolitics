@@ -6,6 +6,7 @@ import com.palmergames.bukkit.towny.TownyCommandAddonAPI.CommandType;
 import com.orbismc.townyPolitics.commands.*;
 import com.orbismc.townyPolitics.hooks.TransactionEmbezzlementHandler;
 import com.orbismc.townyPolitics.hooks.DiagnosticTransactionHandler;
+import com.orbismc.townyPolitics.hooks.TownEconomyHook;
 import com.orbismc.townyPolitics.listeners.TownyEventListener;
 import com.orbismc.townyPolitics.managers.*;
 import com.orbismc.townyPolitics.storage.*;
@@ -124,6 +125,11 @@ public class TownyPolitics extends JavaPlugin {
         getServer().getPluginManager().registerEvents(diagnosticHandler, this);
         debugLogger.info("Registered Diagnostic Transaction Handler");
 
+        // Register town economy hook
+        TownEconomyHook townEconomyHook = new TownEconomyHook(this);
+        getServer().getPluginManager().registerEvents(townEconomyHook, this);
+        debugLogger.info("Registered Town Economy Hook");
+
         // Connect listener and manager (circular reference)
         ppManager.setEventListener(eventListener);
 
@@ -195,6 +201,11 @@ public class TownyPolitics extends JavaPlugin {
         // Save policies.yml if it doesn't exist
         if (!new File(getDataFolder(), "policies.yml").exists()) {
             saveResource("policies.yml", false);
+        }
+
+        // Save town_policies.yml if it doesn't exist
+        if (!new File(getDataFolder(), "town_policies.yml").exists()) {
+            saveResource("town_policies.yml", false);
         }
     }
 

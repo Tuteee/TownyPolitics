@@ -20,6 +20,7 @@ import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -145,18 +146,28 @@ public class PolicyCommand implements CommandExecutor, TabCompleter {
         }
 
         player.sendMessage(ChatColor.GOLD + "=== Policy: " + policy.getName() + " ===");
+
+        // Show town-only label if applicable
+        if (policy.isTownOnly()) {
+            player.sendMessage(ChatColor.YELLOW + "Type: " + ChatColor.AQUA + "[Town Only] " +
+                    ChatColor.WHITE + policy.getType().name());
+        } else {
+            player.sendMessage(ChatColor.YELLOW + "Type: " + ChatColor.WHITE + policy.getType().name());
+        }
+
         player.sendMessage(ChatColor.YELLOW + "Description: " + ChatColor.WHITE + policy.getDescription());
         player.sendMessage(ChatColor.YELLOW + "Cost: " + ChatColor.WHITE + policy.getCost() + " Political Power");
         player.sendMessage(ChatColor.YELLOW + "Duration: " + ChatColor.WHITE +
                 (policy.getDuration() < 0 ? "Permanent" : policy.getDuration() + " days"));
-        player.sendMessage(ChatColor.YELLOW + "Type: " + ChatColor.WHITE + policy.getType().name());
 
         // Show requirements
         player.sendMessage(ChatColor.YELLOW + "Requirements:");
+
         if (policy.getMinPoliticalPower() > 0) {
             player.sendMessage(ChatColor.GRAY + "• Min Political Power: " +
                     ChatColor.WHITE + policy.getMinPoliticalPower());
         }
+
         if (policy.getMaxCorruption() < 100) {
             player.sendMessage(ChatColor.GRAY + "• Max Corruption: " +
                     ChatColor.WHITE + policy.getMaxCorruption() + "%");
@@ -172,7 +183,15 @@ public class PolicyCommand implements CommandExecutor, TabCompleter {
 
         // Show effects
         player.sendMessage(ChatColor.YELLOW + "Effects:");
-        PolicyEffectsDisplay.displayEffects(player, policy.getEffects());
+
+        // Use different display methods based on context
+        if (commandSource.equals("town") && policy.getEffects().hasTownEffects()) {
+            // Show town-specific effects
+            PolicyEffectsDisplay.displayTownEffects(player, policy.getEffects());
+        } else {
+            // Show standard effects
+            PolicyEffectsDisplay.displayEffects(player, policy.getEffects());
+        }
 
         return true;
     }
@@ -188,6 +207,15 @@ public class PolicyCommand implements CommandExecutor, TabCompleter {
 
         if (policy == null) {
             player.sendMessage(ChatColor.RED + "Policy not found: " + policyId);
+            return true;
+        }
+
+        // Verify policy is valid for the context (town/nation)
+        if (commandSource.equals("town") && !policy.isTownOnly() && !policy.getEffects().hasTownEffects() && !policy.getType().equals(Policy.PolicyType.ECONOMIC)) {
+            player.sendMessage(ChatColor.RED + "This policy cannot be enacted by towns.");
+            return true;
+        } else if (commandSource.equals("nation") && policy.isTownOnly()) {
+            player.sendMessage(ChatColor.RED + "This policy can only be enacted by towns.");
             return true;
         }
 
@@ -360,9 +388,16 @@ public class PolicyCommand implements CommandExecutor, TabCompleter {
             return filterCompletions(subCommands, args[0]);
         } else if (args.length == 2) {
             if (args[0].equalsIgnoreCase("info") || args[0].equalsIgnoreCase("enact")) {
-                // Return available policy IDs
+                // Return appropriate policy IDs based on command source
+                Collection<Policy> policies;
+                if (commandSource.equals("town")) {
+                    policies = policyManager.getAvailableTownPolicies();
+                } else {
+                    policies = policyManager.getAvailableNationPolicies();
+                }
+
                 return filterCompletions(
-                        policyManager.getAvailablePolicies().stream()
+                        policies.stream()
                                 .map(Policy::getId)
                                 .collect(Collectors.toList()),
                         args[1]

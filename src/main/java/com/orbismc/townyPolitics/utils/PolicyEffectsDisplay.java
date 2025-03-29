@@ -23,6 +23,41 @@ public class PolicyEffectsDisplay {
         displayModifier(player, "Max Political Power", effects.getMaxPoliticalPowerModifier());
         displayModifier(player, "Resource Output", effects.getResourceOutputModifier());
         displayModifier(player, "Spending Costs", effects.getSpendingModifier(), true);
+
+        // Town-specific effects
+        if (effects.hasTownEffects()) {
+            player.sendMessage(ChatColor.GOLD + "Town-specific effects:");
+            displayModifier(player, "Plot Cost", effects.getPlotCostModifier(), true);
+            displayModifier(player, "Plot Tax", effects.getPlotTaxModifier(), true);
+            displayModifier(player, "Resident Capacity", effects.getResidentCapacityModifier());
+            displayModifier(player, "Town Upkeep", effects.getUpkeepModifier(), true);
+            displayModifier(player, "Town Block Cost", effects.getTownBlockCostModifier(), true);
+            displayModifier(player, "Town Block Bonus", effects.getTownBlockBonusModifier());
+        }
+    }
+
+    /**
+     * Display only town-specific effects to a player
+     * @param player The player to display effects to
+     * @param effects The policy effects to display
+     */
+    public static void displayTownEffects(Player player, PolicyEffects effects) {
+        if (effects.hasTownEffects()) {
+            displayModifier(player, "Plot Cost", effects.getPlotCostModifier(), true);
+            displayModifier(player, "Plot Tax", effects.getPlotTaxModifier(), true);
+            displayModifier(player, "Resident Capacity", effects.getResidentCapacityModifier());
+            displayModifier(player, "Town Upkeep", effects.getUpkeepModifier(), true);
+            displayModifier(player, "Town Block Cost", effects.getTownBlockCostModifier(), true);
+            displayModifier(player, "Town Block Bonus", effects.getTownBlockBonusModifier());
+        } else {
+            player.sendMessage(ChatColor.GRAY + "• " + ChatColor.WHITE + "No specific town effects");
+        }
+
+        // Still show relevant general effects
+        displayModifier(player, "Tax Rate", effects.getTaxModifier());
+        displayModifier(player, "Trade Income", effects.getTradeModifier());
+        displayModifier(player, "Economy", effects.getEconomyModifier());
+        displayModifier(player, "Corruption Gain", effects.getCorruptionGainModifier(), true);
     }
 
     /**
