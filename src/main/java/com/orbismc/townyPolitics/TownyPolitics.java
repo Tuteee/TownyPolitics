@@ -18,6 +18,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
+
 public class TownyPolitics extends JavaPlugin {
 
     private TownyAPI townyAPI;
@@ -260,8 +262,7 @@ public class TownyPolitics extends JavaPlugin {
 
         // Reload policy data
         if (policyManager != null) {
-            policyManager.loadPolicies();
-            policyManager.loadActivePolicies();
+            policyManager.reload();
         }
 
         debugLogger.info("Configuration reloaded");

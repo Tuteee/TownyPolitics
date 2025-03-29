@@ -49,9 +49,19 @@ public class PolicyManager {
     }
 
     /**
+     * Reload policy data
+     */
+    public void reload() {
+        // Reload policies and active policies
+        loadPolicies();
+        loadActivePolicies();
+        logger.info("Policy data reloaded");
+    }
+
+    /**
      * Load all policy definitions from configuration
      */
-    private void loadPolicies() {
+    public void loadPolicies() {
         availablePolicies.clear();
 
         // Load built-in policies from policies.yml
@@ -140,7 +150,7 @@ public class PolicyManager {
     /**
      * Load active policies from storage
      */
-    private void loadActivePolicies() {
+    public void loadActivePolicies() {
         activeTownPolicies.clear();
         activeNationPolicies.clear();
 
@@ -269,7 +279,6 @@ public class PolicyManager {
 
     /**
      * Enact a policy for a town
-     *
      * @return true if successful, false if failed
      */
     public boolean enactPolicy(Town town, String policyId) {
@@ -292,7 +301,7 @@ public class PolicyManager {
         }
 
         // Check if town meets policy requirements
-        GovernmentManager townGovManager = plugin.getTownGovManager();
+        TownGovernmentManager townGovManager = plugin.getTownGovManager();
         GovernmentType townGovType = townGovManager.getGovernmentType(town);
 
         if (!policy.isGovernmentAllowed(townGovType)) {
@@ -322,7 +331,6 @@ public class PolicyManager {
 
     /**
      * Enact a policy for a nation
-     *
      * @return true if successful, false if failed
      */
     public boolean enactPolicy(Nation nation, String policyId) {
@@ -399,7 +407,6 @@ public class PolicyManager {
 
     /**
      * Revoke an active policy
-     *
      * @return true if successful, false if failed
      */
     public boolean revokePolicy(UUID entityId, UUID policyId, boolean isNation) {

@@ -301,7 +301,7 @@ public class TownyEventListener implements Listener {
         }
 
         // Create hover text component
-        Component.Builder hoverTextBuilder = Component.text("Active Policies")
+        Component hoverText = Component.text("Active Policies")
                 .color(NamedTextColor.DARK_GREEN)
                 .append(Component.newline())
                 .append(Component.newline());
@@ -311,14 +311,12 @@ public class TownyEventListener implements Listener {
             Policy policy = plugin.getPolicyManager().getPolicy(activePolicy.getPolicyId());
             if (policy == null) continue;
 
-            hoverTextBuilder.append(Component.text("• " + policy.getName())
+            hoverText = hoverText.append(Component.text("• " + policy.getName())
                             .color(NamedTextColor.GREEN))
                     .append(Component.text(" (" + activePolicy.formatRemainingTime() + ")")
                             .color(NamedTextColor.GRAY))
                     .append(Component.newline());
         }
-
-        Component hoverText = hoverTextBuilder.build();
 
         // Create the Policies component
         Component openBracket = Component.text("[").color(NamedTextColor.GRAY);
@@ -422,7 +420,7 @@ public class TownyEventListener implements Listener {
         }
 
         // Create hover text component
-        Component.Builder hoverTextBuilder = Component.text("Active Policies")
+        Component hoverText = Component.text("Active Policies")
                 .color(NamedTextColor.DARK_GREEN)
                 .append(Component.newline())
                 .append(Component.newline());
@@ -432,14 +430,12 @@ public class TownyEventListener implements Listener {
             Policy policy = plugin.getPolicyManager().getPolicy(activePolicy.getPolicyId());
             if (policy == null) continue;
 
-            hoverTextBuilder.append(Component.text("• " + policy.getName())
+            hoverText = hoverText.append(Component.text("• " + policy.getName())
                             .color(NamedTextColor.GREEN))
                     .append(Component.text(" (" + activePolicy.formatRemainingTime() + ")")
                             .color(NamedTextColor.GRAY))
                     .append(Component.newline());
         }
-
-        Component hoverText = hoverTextBuilder.build();
 
         // Create the Policies component
         Component openBracket = Component.text("[").color(NamedTextColor.GRAY);
