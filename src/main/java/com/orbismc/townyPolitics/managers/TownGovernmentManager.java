@@ -97,9 +97,29 @@ public class TownGovernmentManager {
 
     public boolean setGovernmentType(Town town, GovernmentType type, boolean bypassCooldown) {
         // Check cooldown if not bypassing
-        if (!bypassCooldown && isOnCooldown(town)) {
-            logger.info("Town " + town.getName() + " attempted to change government while on cooldown");
-            return false;
+        if (!bypassCooldown) {
+            if (isOnCooldown(town)) {
+                logger.info("Town " + town.getName() + " attempted to change government while on cooldown");
+                return false;
+            }
+
+            // Get the town's previous government changes
+            long lastChange = getLastChangeTime(town);
+            boolean hasChangedBefore = lastChange > 0;
+
+            // If this is a subsequent change, use the switch_time instead of the full cooldown
+            if (hasChangedBefore) {
+                long switchTimeDays = plugin.getConfig().getLong("government.switch_time", 7);
+                long switchTimeMillis = switchTimeDays * 24 * 60 * 60 * 1000;
+
+                // Check if enough time has passed since the last change
+                if (System.currentTimeMillis() - lastChange < switchTimeMillis) {
+                    logger.info("Town " + town.getName() +
+                            " must wait " + formatCooldownTime(switchTimeMillis - (System.currentTimeMillis() - lastChange)) +
+                            " before completing government transition");
+                    return false;
+                }
+            }
         }
 
         // Get old government type for logging

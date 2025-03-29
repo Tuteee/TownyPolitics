@@ -126,6 +126,24 @@ public class GovernmentCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        // Check if this is a subsequent change with switch time
+        long lastChange = govManager.getLastChangeTime(town);
+        boolean hasChangedBefore = lastChange > 0;
+        if (hasChangedBefore) {
+            long switchTimeDays = plugin.getConfig().getLong("government.switch_time", 7);
+            long switchTimeMillis = switchTimeDays * 24 * 60 * 60 * 1000;
+
+            // Check if enough time has passed since the last change
+            if (System.currentTimeMillis() - lastChange < switchTimeMillis) {
+                long remaining = switchTimeMillis - (System.currentTimeMillis() - lastChange);
+                String timeStr = govManager.formatCooldownTime(remaining);
+                player.sendMessage(ChatColor.RED + "Your town is still completing the transition to " +
+                        govManager.getGovernmentType(town).getDisplayName() + ". Please wait " +
+                        timeStr + " before changing government again.");
+                return true;
+            }
+        }
+
         // Try to set government type
         boolean success = govManager.setGovernmentType(town, govType);
         if (success) {
@@ -156,6 +174,24 @@ public class GovernmentCommand implements CommandExecutor, TabCompleter {
             String timeStr = govManager.formatCooldownTime(remaining);
             player.sendMessage(ChatColor.RED + "Your nation must wait " + timeStr + " before changing government again.");
             return true;
+        }
+
+        // Check if this is a subsequent change with switch time
+        long lastChange = govManager.getLastChangeTime(nation);
+        boolean hasChangedBefore = lastChange > 0;
+        if (hasChangedBefore) {
+            long switchTimeDays = plugin.getConfig().getLong("government.switch_time", 7);
+            long switchTimeMillis = switchTimeDays * 24 * 60 * 60 * 1000;
+
+            // Check if enough time has passed since the last change
+            if (System.currentTimeMillis() - lastChange < switchTimeMillis) {
+                long remaining = switchTimeMillis - (System.currentTimeMillis() - lastChange);
+                String timeStr = govManager.formatCooldownTime(remaining);
+                player.sendMessage(ChatColor.RED + "Your nation is still completing the transition to " +
+                        govManager.getGovernmentType(nation).getDisplayName() + ". Please wait " +
+                        timeStr + " before changing government again.");
+                return true;
+            }
         }
 
         // Try to set government type
