@@ -7,7 +7,6 @@ import com.palmergames.bukkit.towny.event.time.dailytaxes.PreTownPaysNationTaxEv
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.utils.DelegateLogger;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 
 public class DiagnosticTransactionHandler implements Listener {

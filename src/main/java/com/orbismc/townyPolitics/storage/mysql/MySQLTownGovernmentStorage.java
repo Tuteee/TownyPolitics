@@ -1,11 +1,10 @@
-// MySQLTownGovernmentStorage.java
 package com.orbismc.townyPolitics.storage.mysql;
 
 import com.orbismc.townyPolitics.TownyPolitics;
-import com.orbismc.townyPolitics.government.GovernmentType;
-import com.orbismc.townyPolitics.storage.ITownGovernmentStorage;
 import com.orbismc.townyPolitics.DatabaseManager;
-import com.orbismc.townyPolitics.utils.DelegateLogger;
+import com.orbismc.townyPolitics.government.GovernmentType;
+import com.orbismc.townyPolitics.storage.AbstractMySQLStorage;
+import com.orbismc.townyPolitics.storage.ITownGovernmentStorage;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -15,56 +14,32 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class MySQLTownGovernmentStorage implements ITownGovernmentStorage {
-
-    private final TownyPolitics plugin;
-    private final DatabaseManager dbManager;
-    private final String prefix;
-    private final DelegateLogger logger;
+public class MySQLTownGovernmentStorage extends AbstractMySQLStorage implements ITownGovernmentStorage {
 
     public MySQLTownGovernmentStorage(TownyPolitics plugin, DatabaseManager dbManager) {
-        this.plugin = plugin;
-        this.dbManager = dbManager;
-        this.prefix = dbManager.getPrefix();
-        this.logger = new DelegateLogger(plugin, "MySQLTownGovStorage");
-
-        // Create table if it doesn't exist
-        createTable();
+        super(plugin, dbManager, "MySQLTownGovStorage");
         logger.info("MySQL Town Government Storage initialized");
-    }
-
-    private void createTable() {
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(
-                     "CREATE TABLE IF NOT EXISTS " + prefix + "town_governments (" +
-                             "town_uuid VARCHAR(36) PRIMARY KEY, " +
-                             "government_type VARCHAR(50) NOT NULL, " +
-                             "last_change_time BIGINT NOT NULL)")) {
-            stmt.executeUpdate();
-            logger.info("Town governments table created or verified");
-        } catch (SQLException e) {
-            logger.severe("Failed to create town governments table: " + e.getMessage());
-        }
     }
 
     @Override
     public void saveGovernment(UUID uuid, GovernmentType type) {
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
-                     "INSERT INTO " + prefix + "town_governments (town_uuid, government_type, last_change_time) " +
-                             "VALUES (?, ?, ?) " +
+                     "INSERT INTO " + prefix + "governments (entity_uuid, entity_type, government_type, last_change_time) " +
+                             "VALUES (?, ?, ?, ?) " +
                              "ON DUPLICATE KEY UPDATE government_type = ?, last_change_time = ?")) {
 
             long now = System.currentTimeMillis();
 
             stmt.setString(1, uuid.toString());
-            stmt.setString(2, type.name());
-            stmt.setLong(3, now);
-            stmt.setString(4, type.name());
-            stmt.setLong(5, now);
+            stmt.setString(2, "TOWN");
+            stmt.setString(3, type.name());
+            stmt.setLong(4, now);
+            stmt.setString(5, type.name());
+            stmt.setLong(6, now);
 
             int updated = stmt.executeUpdate();
-            logger.fine("Saved government type for town " + uuid + ": " + type.name() + " (rows affected: " + updated + ")");
+            logger.fine("Saved government type for town " + uuid + ": " + type.name());
         } catch (SQLException e) {
             logger.severe("Failed to save town government data: " + e.getMessage());
         }
@@ -72,10 +47,10 @@ public class MySQLTownGovernmentStorage implements ITownGovernmentStorage {
 
     @Override
     public void saveChangeTime(UUID uuid, long timestamp) {
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
-                     "UPDATE " + prefix + "town_governments SET last_change_time = ? " +
-                             "WHERE town_uuid = ?")) {
+                     "UPDATE " + prefix + "governments SET last_change_time = ? " +
+                             "WHERE entity_uuid = ? AND entity_type = 'TOWN'")) {
 
             stmt.setLong(1, timestamp);
             stmt.setString(2, uuid.toString());
@@ -93,10 +68,10 @@ public class MySQLTownGovernmentStorage implements ITownGovernmentStorage {
 
     @Override
     public GovernmentType getGovernment(UUID uuid) {
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT government_type FROM " + prefix + "town_governments " +
-                             "WHERE town_uuid = ?")) {
+                     "SELECT government_type FROM " + prefix + "governments " +
+                             "WHERE entity_uuid = ? AND entity_type = 'TOWN'")) {
 
             stmt.setString(1, uuid.toString());
 
@@ -104,14 +79,10 @@ public class MySQLTownGovernmentStorage implements ITownGovernmentStorage {
             if (rs.next()) {
                 String typeName = rs.getString("government_type");
                 try {
-                    GovernmentType type = GovernmentType.valueOf(typeName);
-                    logger.fine("Retrieved government type for town " + uuid + ": " + type.name());
-                    return type;
+                    return GovernmentType.valueOf(typeName);
                 } catch (IllegalArgumentException e) {
                     logger.warning("Invalid government type in database: " + typeName);
                 }
-            } else {
-                logger.fine("No government type found for town " + uuid + ", using default");
             }
         } catch (SQLException e) {
             logger.severe("Failed to get town government: " + e.getMessage());
@@ -122,18 +93,16 @@ public class MySQLTownGovernmentStorage implements ITownGovernmentStorage {
 
     @Override
     public long getChangeTime(UUID uuid) {
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT last_change_time FROM " + prefix + "town_governments " +
-                             "WHERE town_uuid = ?")) {
+                     "SELECT last_change_time FROM " + prefix + "governments " +
+                             "WHERE entity_uuid = ? AND entity_type = 'TOWN'")) {
 
             stmt.setString(1, uuid.toString());
 
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                long changeTime = rs.getLong("last_change_time");
-                logger.fine("Retrieved change time for town " + uuid + ": " + changeTime);
-                return changeTime;
+                return rs.getLong("last_change_time");
             }
         } catch (SQLException e) {
             logger.severe("Failed to get town change time: " + e.getMessage());
@@ -146,16 +115,17 @@ public class MySQLTownGovernmentStorage implements ITownGovernmentStorage {
     public Map<UUID, GovernmentType> loadAllGovernments() {
         Map<UUID, GovernmentType> result = new HashMap<>();
 
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT town_uuid, government_type FROM " + prefix + "town_governments")) {
+                     "SELECT entity_uuid, government_type FROM " + prefix + "governments " +
+                             "WHERE entity_type = 'TOWN'")) {
 
             ResultSet rs = stmt.executeQuery();
             int count = 0;
 
             while (rs.next()) {
                 try {
-                    UUID uuid = UUID.fromString(rs.getString("town_uuid"));
+                    UUID uuid = UUID.fromString(rs.getString("entity_uuid"));
                     String typeName = rs.getString("government_type");
                     GovernmentType type = GovernmentType.valueOf(typeName);
                     result.put(uuid, type);
@@ -165,7 +135,7 @@ public class MySQLTownGovernmentStorage implements ITownGovernmentStorage {
                 }
             }
 
-            logger.info("Loaded " + count + " town government entries from database");
+            logger.info("Loaded " + count + " town government entries");
         } catch (SQLException e) {
             logger.severe("Failed to load town governments: " + e.getMessage());
         }
@@ -177,16 +147,17 @@ public class MySQLTownGovernmentStorage implements ITownGovernmentStorage {
     public Map<UUID, Long> loadAllChangeTimes() {
         Map<UUID, Long> result = new HashMap<>();
 
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT town_uuid, last_change_time FROM " + prefix + "town_governments")) {
+                     "SELECT entity_uuid, last_change_time FROM " + prefix + "governments " +
+                             "WHERE entity_type = 'TOWN'")) {
 
             ResultSet rs = stmt.executeQuery();
             int count = 0;
 
             while (rs.next()) {
                 try {
-                    UUID uuid = UUID.fromString(rs.getString("town_uuid"));
+                    UUID uuid = UUID.fromString(rs.getString("entity_uuid"));
                     long time = rs.getLong("last_change_time");
                     result.put(uuid, time);
                     count++;
@@ -195,17 +166,11 @@ public class MySQLTownGovernmentStorage implements ITownGovernmentStorage {
                 }
             }
 
-            logger.info("Loaded " + count + " town change time entries from database");
+            logger.info("Loaded " + count + " town change time entries");
         } catch (SQLException e) {
             logger.severe("Failed to load town change times: " + e.getMessage());
         }
 
         return result;
-    }
-
-    @Override
-    public void saveAll() {
-        logger.fine("saveAll() called (no action needed for MySQL storage)");
-        // No specific action needed for MySQL as data is saved immediately
     }
 }

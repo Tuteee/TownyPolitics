@@ -23,7 +23,6 @@ public class DebugLogger {
         this.enabled = plugin.getConfig().getBoolean("debug.enabled", false);
         this.logToFile = plugin.getConfig().getBoolean("debug.log_to_file", true);
         this.fileName = plugin.getConfig().getString("debug.file_name", "debug.log");
-
         String configLevel = plugin.getConfig().getString("debug.log_level", "INFO");
         this.logLevel = parseLogLevel(configLevel);
 
@@ -43,14 +42,12 @@ public class DebugLogger {
 
     private void setupLogFile() {
         logFile = new File(plugin.getDataFolder(), fileName);
-
         try {
             if (!logFile.exists()) {
                 logFile.getParentFile().mkdirs();
                 logFile.createNewFile();
             }
 
-            // Create header for new log file
             try (PrintWriter writer = new PrintWriter(new FileWriter(logFile, true))) {
                 SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 writer.println("\n\n========== TownyPolitics Debug Log Started at " +
@@ -78,7 +75,6 @@ public class DebugLogger {
                 plugin.getLogger().log(level, message); // Fallback to console
             }
         } else {
-            // Log to console if file logging is disabled
             plugin.getLogger().log(level, message);
         }
     }

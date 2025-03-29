@@ -7,309 +7,165 @@ import com.orbismc.townyPolitics.commands.*;
 import com.orbismc.townyPolitics.hooks.TransactionEmbezzlementHandler;
 import com.orbismc.townyPolitics.hooks.DiagnosticTransactionHandler;
 import com.orbismc.townyPolitics.hooks.TownEconomyHook;
-import com.orbismc.townyPolitics.listeners.TownyEventListener;
+import com.orbismc.townyPolitics.listeners.GovernmentEventListener;
+import com.orbismc.townyPolitics.listeners.CorruptionEventListener;
+import com.orbismc.townyPolitics.listeners.PolicyEventListener;
 import com.orbismc.townyPolitics.managers.*;
 import com.orbismc.townyPolitics.storage.*;
 import com.orbismc.townyPolitics.storage.mysql.*;
 import com.orbismc.townyPolitics.utils.DebugLogger;
-import com.orbismc.townyPolitics.policy.ActivePolicy;
-import com.orbismc.townyPolitics.policy.Policy;
-import com.orbismc.townyPolitics.policy.PolicyEffects;
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.File;
-
-public class TownyPolitics extends JavaPlugin {
+public class TownyPolitics extends JavaPlugin implements DailyProcessor {
 
     private TownyAPI townyAPI;
-
-    // Nation managers
-    private PoliticalPowerManager ppManager;
-    private GovernmentManager govManager;
-    private CorruptionManager nationCorruptionManager;
-
-    // Town managers
-    private TownGovernmentManager townGovManager;
-    private TownCorruptionManager townCorruptionManager;
-    private TownPoliticalPowerManager townPpManager; // New town PP manager
-
-    // Common managers
-    private TaxationManager taxationManager;
-    private PolicyManager policyManager;
+    private ConfigManager configManager;
+    private DebugLogger debugLogger;
+    private DatabaseManager dbManager;
 
     // Storage interfaces
     private IPoliticalPowerStorage ppStorage;
     private IGovernmentStorage govStorage;
-    private ICorruptionStorage nationCorruptionStorage;
+    private ICorruptionStorage corruptionStorage;
     private ITownGovernmentStorage townGovStorage;
     private ITownCorruptionStorage townCorruptionStorage;
-    private ITownPoliticalPowerStorage townPpStorage; // New town PP storage
+    private ITownPoliticalPowerStorage townPpStorage;
     private IPolicyStorage policyStorage;
 
-    // Listeners and utilities
-    private TownyEventListener eventListener;
-    private DatabaseManager dbManager;
-    private DebugLogger debugLogger;
+    // Managers
+    private PoliticalPowerManager ppManager;
+    private GovernmentManager govManager;
+    private CorruptionManager corruptionManager;
+    private TownGovernmentManager townGovManager;
+    private TownCorruptionManager townCorruptionManager;
+    private TownPoliticalPowerManager townPpManager;
+    private TaxationManager taxationManager;
+    private PolicyManager policyManager;
+
+    // Event listeners
+    private GovernmentEventListener governmentEventListener;
+    private CorruptionEventListener corruptionEventListener;
+    private PolicyEventListener policyEventListener;
 
     @Override
     public void onEnable() {
         // Check if Towny is loaded
-        if (Bukkit.getPluginManager().getPlugin("Towny") == null) {
-            getLogger().severe("Towny not found! Disabling TownyPolitics...");
-            Bukkit.getPluginManager().disablePlugin(this);
+        if (!checkDependencies()) {
             return;
         }
 
         townyAPI = TownyAPI.getInstance();
 
-        // Save default config and update with new values
-        loadAndUpdateConfig();
-
-        // Initialize debug logger
+        // Initialize config and debug logger
+        configManager = new ConfigManager(this);
         debugLogger = new DebugLogger(this);
         debugLogger.info("TownyPolitics debug logger initialized");
 
-        // Initialize database manager
-        dbManager = new DatabaseManager(this);
+        // Initialize database and storage
+        setupDatabase();
+        setupStorage();
 
-        // Initialize storages based on configuration
-        if (dbManager.isUsingMySQL()) {
-            // Using MySQL
-            debugLogger.info("Using MySQL for data storage");
-            ppStorage = new MySQLPoliticalPowerStorage(this, dbManager);
-            govStorage = new MySQLGovernmentStorage(this, dbManager);
-            nationCorruptionStorage = new MySQLCorruptionStorage(this, dbManager);
-            townGovStorage = new MySQLTownGovernmentStorage(this, dbManager);
-            townCorruptionStorage = new MySQLTownCorruptionStorage(this, dbManager);
-            townPpStorage = new MySQLTownPoliticalPowerStorage(this, dbManager); // New town PP storage
-            policyStorage = new MySQLPolicyStorage(this, dbManager);
-            debugLogger.info("Initialized MySQL Policy Storage");
-        } else {
-            // Using YAML
-            debugLogger.info("Using YAML for data storage");
-            ppStorage = new YamlPoliticalPowerStorage(this);
-            govStorage = new YamlGovernmentStorage(this);
-            nationCorruptionStorage = new YamlCorruptionStorage(this);
-            townGovStorage = new YamlTownGovernmentStorage(this);
-            townCorruptionStorage = new YamlTownCorruptionStorage(this);
-            townPpStorage = new YamlTownPoliticalPowerStorage(this); // New town PP storage
-            policyStorage = new YamlPolicyStorage(this);
-            debugLogger.info("Initialized YAML Policy Storage");
-        }
+        // Initialize managers
+        initializeManagers();
 
-        // Initialize nation managers
-        ppManager = new PoliticalPowerManager(this, ppStorage);
-        govManager = new GovernmentManager(this, govStorage);
-        nationCorruptionManager = new CorruptionManager(this, nationCorruptionStorage, govManager);
-
-        // Initialize town managers
-        townGovManager = new TownGovernmentManager(this, townGovStorage);
-        townCorruptionManager = new TownCorruptionManager(this, townCorruptionStorage);
-        townPpManager = new TownPoliticalPowerManager(this, townPpStorage); // Initialize town PP manager
-        debugLogger.info("Initialized Town Political Power Manager");
-
-        // Initialize taxation manager (depends on corruption manager)
-        taxationManager = new TaxationManager(this, nationCorruptionManager);
-
-        // Initialize policy manager
-        policyManager = new PolicyManager(this, policyStorage);
-        debugLogger.info("Initialized Policy Manager");
-
-        // Initialize and register listener
-        eventListener = new TownyEventListener(this, ppManager, nationCorruptionManager);
-        getServer().getPluginManager().registerEvents(eventListener, this);
-
-        // Register transaction handlers
-        TransactionEmbezzlementHandler embezzlementHandler = new TransactionEmbezzlementHandler(this);
-        getServer().getPluginManager().registerEvents(embezzlementHandler, this);
-        debugLogger.info("Registered Transaction Embezzlement Handler");
-
-        // Register diagnostic handler for debugging
-        DiagnosticTransactionHandler diagnosticHandler = new DiagnosticTransactionHandler(this);
-        getServer().getPluginManager().registerEvents(diagnosticHandler, this);
-        debugLogger.info("Registered Diagnostic Transaction Handler");
-
-        // Register town economy hook
-        TownEconomyHook townEconomyHook = new TownEconomyHook(this);
-        getServer().getPluginManager().registerEvents(townEconomyHook, this);
-        debugLogger.info("Registered Town Economy Hook");
-
-        // Connect listener and manager (circular reference)
-        ppManager.setEventListener(eventListener);
+        // Register event listeners
+        registerListeners();
 
         // Register commands
         registerCommands();
 
-        debugLogger.info("TownyPolitics has been enabled!");
-        getLogger().info("TownyPolitics has been enabled!");
+        debugLogger.info("TownyPolitics has been enabled");
+        getLogger().info("TownyPolitics has been enabled");
     }
 
-    /**
-     * Loads and updates the config with new sections while preserving existing values
-     */
-    private void loadAndUpdateConfig() {
-        // Create default config if it doesn't exist
-        saveDefaultConfig();
-
-        // Load the config
-        FileConfiguration config = getConfig();
-
-        // Set copyDefaults to true
-        config.options().copyDefaults(true);
-
-        // Add new default sections and values if they don't exist
-
-        // Town Political Power Settings
-        if (!config.contains("town_political_power")) {
-            config.createSection("town_political_power");
-            config.addDefault("town_political_power.base_gain", 0.5);
-            config.addDefault("town_political_power.max_daily_gain", 3.0);
-            config.addDefault("town_political_power.min_daily_gain", 0.5);
-            config.addDefault("town_political_power.nation_bonus", 0.1); // 10% bonus for towns in nations
+    private boolean checkDependencies() {
+        if (Bukkit.getPluginManager().getPlugin("Towny") == null) {
+            getLogger().severe("Towny not found! Disabling TownyPolitics...");
+            Bukkit.getPluginManager().disablePlugin(this);
+            return false;
         }
-
-        // Town Corruption Settings
-        if (!config.contains("town_corruption")) {
-            config.createSection("town_corruption");
-            config.addDefault("town_corruption.base_daily_gain", 0.4);
-
-            // Thresholds
-            config.addDefault("town_corruption.thresholds.low", 25.0);
-            config.addDefault("town_corruption.thresholds.medium", 50.0);
-            config.addDefault("town_corruption.thresholds.high", 75.0);
-            config.addDefault("town_corruption.thresholds.critical", 90.0);
-
-            // Effects - taxation
-            config.addDefault("town_corruption.effects.taxation.low", 0.95);
-            config.addDefault("town_corruption.effects.taxation.medium", 0.90);
-            config.addDefault("town_corruption.effects.taxation.high", 0.80);
-            config.addDefault("town_corruption.effects.taxation.critical", 0.70);
-
-            // Effects - trade
-            config.addDefault("town_corruption.effects.trade.low", 0.95);
-            config.addDefault("town_corruption.effects.trade.medium", 0.90);
-            config.addDefault("town_corruption.effects.trade.high", 0.80);
-            config.addDefault("town_corruption.effects.trade.critical", 0.70);
-        }
-
-        // Town Government Settings
-        if (!config.contains("town_government")) {
-            config.createSection("town_government");
-            config.addDefault("town_government.change_cooldown", 15);
-        }
-
-        // Policy System Settings
-        if (!config.contains("policies")) {
-            config.createSection("policies");
-            config.addDefault("policies.cooldown_days", 3);
-
-            // Create custom policies section
-            config.createSection("policies.available");
-        }
-
-        // Save updated config
-        saveConfig();
-
-        getLogger().info("Config loaded and updated with new settings");
-
-        // Save policies.yml if it doesn't exist
-        if (!new File(getDataFolder(), "policies.yml").exists()) {
-            saveResource("policies.yml", false);
-        }
-
-        // Save town_policies.yml if it doesn't exist
-        if (!new File(getDataFolder(), "town_policies.yml").exists()) {
-            saveResource("town_policies.yml", false);
-        }
+        return true;
     }
 
-    @Override
-    public void onDisable() {
-        // Save all data on plugin disable
-        if (ppStorage != null) {
-            ppStorage.saveAll();
-        }
-        if (govStorage != null) {
-            govStorage.saveAll();
-        }
-        if (nationCorruptionStorage != null) {
-            nationCorruptionStorage.saveAll();
-        }
-        if (townGovStorage != null) {
-            townGovStorage.saveAll();
-        }
-        if (townCorruptionStorage != null) {
-            townCorruptionStorage.saveAll();
-        }
-        if (townPpStorage != null) {
-            townPpStorage.saveAll();
-        }
-
-        // Save policy data
-        if (policyStorage != null) {
-            policyStorage.saveAll();
-        }
-
-        // Close database connections
-        if (dbManager != null) {
-            dbManager.close();
-        }
-
-        debugLogger.info("TownyPolitics has been disabled!");
-        getLogger().info("TownyPolitics has been disabled!");
+    private void setupDatabase() {
+        dbManager = new DatabaseManager(this);
+        debugLogger.info("Database manager initialized");
     }
 
-    public void reload() {
-        reloadConfig();
+    private void setupStorage() {
+        // Initialize MySQL storage implementations
+        ppStorage = new MySQLPoliticalPowerStorage(this, dbManager);
+        govStorage = new MySQLGovernmentStorage(this, dbManager);
+        corruptionStorage = new MySQLCorruptionStorage(this, dbManager);
+        townGovStorage = new MySQLTownGovernmentStorage(this, dbManager);
+        townCorruptionStorage = new MySQLTownCorruptionStorage(this, dbManager);
+        townPpStorage = new MySQLTownPoliticalPowerStorage(this, dbManager);
+        policyStorage = new MySQLPolicyStorage(this, dbManager);
 
-        // Run the config update process again
-        loadAndUpdateConfig();
-
-        // Reinitialize debugLogger with new config settings
-        debugLogger = new DebugLogger(this);
-        debugLogger.info("Debug logger reinitialized with new config settings");
-
-        // Reload nation data
-        if (ppManager != null) {
-            ppManager.loadData();
-        }
-        if (govManager != null) {
-            govManager.loadData();
-        }
-        if (nationCorruptionManager != null) {
-            nationCorruptionManager.loadData();
-        }
-
-        // Reload town data
-        if (townGovManager != null) {
-            townGovManager.loadData();
-        }
-        if (townCorruptionManager != null) {
-            townCorruptionManager.loadData();
-        }
-        if (townPpManager != null) {
-            townPpManager.loadData();
-        }
-
-        // Reload policy data
-        if (policyManager != null) {
-            policyManager.reload();
-        }
-
-        debugLogger.info("Configuration reloaded");
+        debugLogger.info("MySQL storage initialized");
     }
 
-    /**
-     * Register all commands
-     */
+    private void initializeManagers() {
+        // Initialize nation managers
+        govManager = new GovernmentManager(this, govStorage);
+        ppManager = new PoliticalPowerManager(this, ppStorage, govManager);
+        corruptionManager = new CorruptionManager(this, corruptionStorage, govManager);
+
+        // Initialize town managers
+        townGovManager = new TownGovernmentManager(this, townGovStorage);
+        townCorruptionManager = new TownCorruptionManager(this, townCorruptionStorage, townGovManager);
+        townPpManager = new TownPoliticalPowerManager(this, townPpStorage, townGovManager);
+        debugLogger.info("Town Political Power Manager initialized");
+
+        // Initialize taxation manager
+        taxationManager = new TaxationManager(this, corruptionManager, townCorruptionManager);
+
+        // Initialize policy manager
+        policyManager = new PolicyManager(this, policyStorage, govManager, townGovManager);
+        debugLogger.info("Policy Manager initialized");
+
+        debugLogger.info("All managers initialized");
+    }
+
+    private void registerListeners() {
+        PluginManager pm = getServer().getPluginManager();
+
+        // Create event listeners
+        governmentEventListener = new GovernmentEventListener(this, govManager, townGovManager);
+        corruptionEventListener = new CorruptionEventListener(this, corruptionManager, townCorruptionManager, ppManager);
+        policyEventListener = new PolicyEventListener(this, policyManager);
+
+        // Register listeners
+        pm.registerEvents(governmentEventListener, this);
+        pm.registerEvents(corruptionEventListener, this);
+        pm.registerEvents(policyEventListener, this);
+
+        // Transaction handlers
+        TransactionEmbezzlementHandler embezzlementHandler = new TransactionEmbezzlementHandler(this);
+        pm.registerEvents(embezzlementHandler, this);
+        debugLogger.info("Transaction Embezzlement Handler registered");
+
+        // Diagnostic handler for debugging
+        DiagnosticTransactionHandler diagnosticHandler = new DiagnosticTransactionHandler(this);
+        pm.registerEvents(diagnosticHandler, this);
+        debugLogger.info("Diagnostic Transaction Handler registered");
+
+        // Town economy hook
+        TownEconomyHook townEconomyHook = new TownEconomyHook(this);
+        pm.registerEvents(townEconomyHook, this);
+        debugLogger.info("Town Economy Hook registered");
+
+        debugLogger.info("All event listeners registered");
+    }
+
     private void registerCommands() {
         try {
             // Create command executors for nations
             GovernmentCommand nationGovCommand = new GovernmentCommand(this, govManager, "nation");
-            OverviewCommand nationOverviewCommand = new OverviewCommand(this, govManager, ppManager, nationCorruptionManager);
-            CorruptionCommand nationCorruptionCommand = new CorruptionCommand(this, nationCorruptionManager, ppManager);
+            OverviewCommand nationOverviewCommand = new OverviewCommand(this, govManager, ppManager, corruptionManager);
+            CorruptionCommand nationCorruptionCommand = new CorruptionCommand(this, corruptionManager, ppManager);
             PoliticalPowerCommand ppCommand = new PoliticalPowerCommand(this, ppManager);
 
             // Create command executors for towns
@@ -336,7 +192,7 @@ public class TownyPolitics extends JavaPlugin {
             TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "pp", townPpCommand);
 
             // Register TownyAdmin command
-            new TownyAdminPoliticsCommand(this, govManager, ppManager, nationCorruptionManager);
+            new TownyAdminPoliticsCommand(this, govManager, ppManager, corruptionManager);
 
             // Register test command for embezzlement
             TestEmbezzlementCommand testEmbezzlementCommand = new TestEmbezzlementCommand(this);
@@ -345,15 +201,110 @@ public class TownyPolitics extends JavaPlugin {
             // Register migration command
             new MigrationCommand(this);
 
-            debugLogger.info("Successfully registered all commands");
+            debugLogger.info("All commands registered");
         } catch (Exception e) {
             debugLogger.severe("Failed to register commands: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
+    @Override
+    public void onDisable() {
+        // Save all data on plugin disable
+        saveAllData();
+
+        // Close database connections
+        if (dbManager != null) {
+            dbManager.close();
+        }
+
+        debugLogger.info("TownyPolitics has been disabled");
+        getLogger().info("TownyPolitics has been disabled");
+    }
+
+    private void saveAllData() {
+        if (ppStorage != null) {
+            ppStorage.saveAll();
+        }
+        if (govStorage != null) {
+            govStorage.saveAll();
+        }
+        if (corruptionStorage != null) {
+            corruptionStorage.saveAll();
+        }
+        if (townGovStorage != null) {
+            townGovStorage.saveAll();
+        }
+        if (townCorruptionStorage != null) {
+            townCorruptionStorage.saveAll();
+        }
+        if (townPpStorage != null) {
+            townPpStorage.saveAll();
+        }
+        if (policyStorage != null) {
+            policyStorage.saveAll();
+        }
+    }
+
+    public void reload() {
+        // Reload configuration
+        configManager.loadConfig();
+
+        // Reinitialize debugLogger with new config settings
+        debugLogger = new DebugLogger(this);
+        debugLogger.info("Debug logger reinitialized with new config settings");
+
+        // Reload nation data
+        if (ppManager != null) {
+            ppManager.loadData();
+        }
+        if (govManager != null) {
+            govManager.loadData();
+        }
+        if (corruptionManager != null) {
+            corruptionManager.loadData();
+        }
+
+        // Reload town data
+        if (townGovManager != null) {
+            townGovManager.loadData();
+        }
+        if (townCorruptionManager != null) {
+            townCorruptionManager.loadData();
+        }
+        if (townPpManager != null) {
+            townPpManager.loadData();
+        }
+
+        // Reload policy data
+        if (policyManager != null) {
+            policyManager.reload();
+        }
+
+        debugLogger.info("Configuration reloaded");
+    }
+
+    @Override
+    public void processNewDay() {
+        debugLogger.info("Processing daily updates");
+
+        // Process daily updates for all components
+        ppManager.processNewDay();
+        corruptionManager.processNewDay();
+        townCorruptionManager.processNewDay();
+        townPpManager.processNewDay();
+        policyManager.processNewDay();
+
+        debugLogger.info("Daily updates complete");
+    }
+
+    // Getters
     public TownyAPI getTownyAPI() {
         return townyAPI;
+    }
+
+    public ConfigManager getConfigManager() {
+        return configManager;
     }
 
     public PoliticalPowerManager getPPManager() {
@@ -365,7 +316,7 @@ public class TownyPolitics extends JavaPlugin {
     }
 
     public CorruptionManager getCorruptionManager() {
-        return nationCorruptionManager;
+        return corruptionManager;
     }
 
     public TownGovernmentManager getTownGovManager() {

@@ -1,8 +1,5 @@
 package com.orbismc.townyPolitics.policy;
 
-/**
- * Represents the effects a policy can have on gameplay mechanics
- */
 public class PolicyEffects {
     // Economic effects
     private final double taxModifier;
@@ -27,7 +24,8 @@ public class PolicyEffects {
     private final double townBlockBonusModifier;
 
     public PolicyEffects(double taxModifier, double tradeModifier, double economyModifier,
-                         double politicalPowerGainModifier, double corruptionGainModifier, double maxPoliticalPowerModifier,
+                         double politicalPowerGainModifier, double corruptionGainModifier,
+                         double maxPoliticalPowerModifier,
                          double resourceOutputModifier, double spendingModifier,
                          double plotCostModifier, double plotTaxModifier, double residentCapacityModifier,
                          double upkeepModifier, double townBlockCostModifier, double townBlockBonusModifier) {
@@ -65,7 +63,6 @@ public class PolicyEffects {
     public double getTownBlockCostModifier() { return townBlockCostModifier; }
     public double getTownBlockBonusModifier() { return townBlockBonusModifier; }
 
-    // Check if town-specific modifiers are present
     public boolean hasTownEffects() {
         return plotCostModifier != 1.0 ||
                 plotTaxModifier != 1.0 ||
@@ -75,9 +72,6 @@ public class PolicyEffects {
                 townBlockBonusModifier != 1.0;
     }
 
-    /**
-     * Builder class for PolicyEffects
-     */
     public static class Builder {
         // Default values (1.0 = no effect)
         private double taxModifier = 1.0;
@@ -95,7 +89,6 @@ public class PolicyEffects {
         private double townBlockCostModifier = 1.0;
         private double townBlockBonusModifier = 1.0;
 
-        // nation setters
         public Builder taxModifier(double taxModifier) {
             this.taxModifier = taxModifier;
             return this;
@@ -136,7 +129,6 @@ public class PolicyEffects {
             return this;
         }
 
-        // Town-specific setters
         public Builder plotCostModifier(double plotCostModifier) {
             this.plotCostModifier = plotCostModifier;
             return this;

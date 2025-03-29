@@ -1,10 +1,10 @@
 package com.orbismc.townyPolitics.storage.mysql;
 
 import com.orbismc.townyPolitics.TownyPolitics;
-import com.orbismc.townyPolitics.government.GovernmentType;
-import com.orbismc.townyPolitics.storage.IGovernmentStorage;
 import com.orbismc.townyPolitics.DatabaseManager;
-import com.orbismc.townyPolitics.utils.DelegateLogger;
+import com.orbismc.townyPolitics.government.GovernmentType;
+import com.orbismc.townyPolitics.storage.AbstractMySQLStorage;
+import com.orbismc.townyPolitics.storage.IGovernmentStorage;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -14,18 +14,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class MySQLGovernmentStorage implements IGovernmentStorage {
-
-    private final TownyPolitics plugin;
-    private final DatabaseManager dbManager;
-    private final String prefix;
-    private final DelegateLogger logger;
+public class MySQLGovernmentStorage extends AbstractMySQLStorage implements IGovernmentStorage {
 
     public MySQLGovernmentStorage(TownyPolitics plugin, DatabaseManager dbManager) {
-        this.plugin = plugin;
-        this.dbManager = dbManager;
-        this.prefix = dbManager.getPrefix();
-        this.logger = new DelegateLogger(plugin, "MySQLGovStorage");
+        super(plugin, dbManager, "MySQLGovStorage");
         logger.info("MySQL Government Storage initialized");
     }
 
@@ -33,7 +25,7 @@ public class MySQLGovernmentStorage implements IGovernmentStorage {
     public void saveGovernment(UUID uuid, GovernmentType type, boolean isNation) {
         String entityType = isNation ? "NATION" : "TOWN";
 
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
                      "INSERT INTO " + prefix + "governments (entity_uuid, entity_type, government_type, last_change_time) " +
                              "VALUES (?, ?, ?, ?) " +
@@ -58,7 +50,7 @@ public class MySQLGovernmentStorage implements IGovernmentStorage {
 
     @Override
     public void saveChangeTime(UUID uuid, long timestamp, boolean isNation) {
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
                      "UPDATE " + prefix + "governments SET last_change_time = ? " +
                              "WHERE entity_uuid = ?")) {
@@ -71,8 +63,7 @@ public class MySQLGovernmentStorage implements IGovernmentStorage {
                 logger.fine("Updated change time for " + (isNation ? "nation" : "town") +
                         " " + uuid + " to " + timestamp);
             } else {
-                logger.warning("Failed to update change time for " + (isNation ? "nation" : "town") +
-                        " " + uuid + " - entity not found in database");
+                logger.warning("Failed to update change time - entity not found in database");
             }
         } catch (SQLException e) {
             logger.severe("Failed to save government change time: " + e.getMessage());
@@ -83,7 +74,7 @@ public class MySQLGovernmentStorage implements IGovernmentStorage {
     public GovernmentType getGovernment(UUID uuid, boolean isNation) {
         String entityType = isNation ? "NATION" : "TOWN";
 
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
                      "SELECT government_type FROM " + prefix + "governments " +
                              "WHERE entity_uuid = ? AND entity_type = ?")) {
@@ -95,16 +86,10 @@ public class MySQLGovernmentStorage implements IGovernmentStorage {
             if (rs.next()) {
                 String typeName = rs.getString("government_type");
                 try {
-                    GovernmentType type = GovernmentType.valueOf(typeName);
-                    logger.fine("Retrieved government type for " + entityType.toLowerCase() +
-                            " " + uuid + ": " + type.name());
-                    return type;
+                    return GovernmentType.valueOf(typeName);
                 } catch (IllegalArgumentException e) {
                     logger.warning("Invalid government type in database: " + typeName);
                 }
-            } else {
-                logger.fine("No government type found for " + entityType.toLowerCase() +
-                        " " + uuid + ", using default");
             }
         } catch (SQLException e) {
             logger.severe("Failed to get government: " + e.getMessage());
@@ -117,7 +102,7 @@ public class MySQLGovernmentStorage implements IGovernmentStorage {
     public long getChangeTime(UUID uuid, boolean isNation) {
         String entityType = isNation ? "NATION" : "TOWN";
 
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
                      "SELECT last_change_time FROM " + prefix + "governments " +
                              "WHERE entity_uuid = ? AND entity_type = ?")) {
@@ -127,10 +112,7 @@ public class MySQLGovernmentStorage implements IGovernmentStorage {
 
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                long changeTime = rs.getLong("last_change_time");
-                logger.fine("Retrieved change time for " + entityType.toLowerCase() +
-                        " " + uuid + ": " + changeTime);
-                return changeTime;
+                return rs.getLong("last_change_time");
             }
         } catch (SQLException e) {
             logger.severe("Failed to get change time: " + e.getMessage());
@@ -144,7 +126,7 @@ public class MySQLGovernmentStorage implements IGovernmentStorage {
         Map<UUID, GovernmentType> result = new HashMap<>();
         String entityType = isNation ? "NATION" : "TOWN";
 
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
                      "SELECT entity_uuid, government_type FROM " + prefix + "governments " +
                              "WHERE entity_type = ?")) {
@@ -167,7 +149,7 @@ public class MySQLGovernmentStorage implements IGovernmentStorage {
             }
 
             logger.info("Loaded " + count + " government entries for " +
-                    entityType.toLowerCase() + "s from database");
+                    entityType.toLowerCase() + "s");
         } catch (SQLException e) {
             logger.severe("Failed to load governments: " + e.getMessage());
         }
@@ -180,7 +162,7 @@ public class MySQLGovernmentStorage implements IGovernmentStorage {
         Map<UUID, Long> result = new HashMap<>();
         String entityType = isNation ? "NATION" : "TOWN";
 
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
                      "SELECT entity_uuid, last_change_time FROM " + prefix + "governments " +
                              "WHERE entity_type = ?")) {
@@ -201,18 +183,11 @@ public class MySQLGovernmentStorage implements IGovernmentStorage {
                 }
             }
 
-            logger.info("Loaded " + count + " change time entries for " +
-                    entityType.toLowerCase() + "s from database");
+            logger.info("Loaded " + count + " change time entries");
         } catch (SQLException e) {
             logger.severe("Failed to load change times: " + e.getMessage());
         }
 
         return result;
-    }
-
-    @Override
-    public void saveAll() {
-        logger.fine("saveAll() called (no action needed for MySQL storage)");
-        // No specific action needed for MySQL as data is saved immediately
     }
 }

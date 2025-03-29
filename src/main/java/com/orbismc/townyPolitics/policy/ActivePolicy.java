@@ -1,11 +1,7 @@
 package com.orbismc.townyPolitics.policy;
 
 import java.util.UUID;
-import java.time.Instant;
 
-/**
- * Represents an active policy that has been enacted by a town or nation
- */
 public class ActivePolicy {
     private final UUID id;
     private final String policyId;
@@ -33,7 +29,6 @@ public class ActivePolicy {
         if (durationDays < 0) {
             this.expiryTime = -1; // Permanent policy
         } else {
-            // Calculate expiry time: current time + duration in milliseconds
             this.expiryTime = this.enactedTime + (durationDays * 24L * 60L * 60L * 1000L);
         }
     }
@@ -46,10 +41,6 @@ public class ActivePolicy {
     public long getEnactedTime() { return enactedTime; }
     public long getExpiryTime() { return expiryTime; }
 
-    /**
-     * Check if this policy has expired
-     * @return true if policy has expired, false if still active or permanent
-     */
     public boolean isExpired() {
         if (expiryTime == -1) {
             return false; // Permanent policy never expires
@@ -57,10 +48,6 @@ public class ActivePolicy {
         return System.currentTimeMillis() > expiryTime;
     }
 
-    /**
-     * Get the remaining time for this policy in milliseconds
-     * @return the remaining time, or -1 if permanent
-     */
     public long getRemainingTime() {
         if (expiryTime == -1) {
             return -1; // Permanent policy
@@ -70,10 +57,6 @@ public class ActivePolicy {
         return Math.max(0, remaining); // Don't return negative values
     }
 
-    /**
-     * Format the remaining time as a readable string
-     * @return the formatted time string
-     */
     public String formatRemainingTime() {
         if (expiryTime == -1) {
             return "Permanent";

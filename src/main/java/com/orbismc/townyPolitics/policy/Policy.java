@@ -3,11 +3,7 @@ package com.orbismc.townyPolitics.policy;
 import com.orbismc.townyPolitics.government.GovernmentType;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
-/**
- * Represents a policy that can be enacted by a town or nation
- */
 public class Policy {
     private final String id;
     private final String name;
@@ -59,19 +55,10 @@ public class Policy {
     public boolean isTownOnly() { return townOnly; }
     public PolicyEffects getEffects() { return effects; }
 
-    /**
-     * Checks if a government type is allowed for this policy
-     * @param type The government type to check
-     * @return true if allowed or if no restrictions are set
-     */
     public boolean isGovernmentAllowed(GovernmentType type) {
         return allowedGovernments.isEmpty() || allowedGovernments.contains(type);
     }
 
-    /**
-     * Returns a description of the policy that includes town-specific effects if present
-     * @return Enhanced description
-     */
     public String getEnhancedDescription() {
         StringBuilder description = new StringBuilder(this.description);
 
@@ -104,14 +91,11 @@ public class Policy {
         return String.format("%+.1f%%", (value - 1.0) * 100);
     }
 
-    /**
-     * Policy type enum to categorize policies
-     */
     public enum PolicyType {
         ECONOMIC,
         POLITICAL,
         MILITARY,
         SOCIAL,
-        URBAN // New type specifically for town development policies
+        URBAN // Specifically for town development policies
     }
 }

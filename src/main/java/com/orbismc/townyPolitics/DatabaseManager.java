@@ -12,22 +12,15 @@ import java.sql.SQLException;
 public class DatabaseManager {
 
     private final TownyPolitics plugin;
-    private final boolean useMySQL;
     private HikariDataSource dataSource;
-    private String prefix;
+    private final String prefix;
     private final DelegateLogger logger;
 
     public DatabaseManager(TownyPolitics plugin) {
         this.plugin = plugin;
-        this.useMySQL = plugin.getConfig().getBoolean("database.use_mysql", false);
         this.prefix = plugin.getConfig().getString("database.prefix", "tp_");
         this.logger = new DelegateLogger(plugin, "Database");
-
-        if (useMySQL) {
-            setupMySQL();
-        } else {
-            logger.info("MySQL is disabled, using YAML storage");
-        }
+        setupMySQL();
     }
 
     private void setupMySQL() {
@@ -54,16 +47,14 @@ public class DatabaseManager {
 
         try {
             dataSource = new HikariDataSource(config);
-            logger.info("Successfully connected to MySQL database!");
+            logger.info("Successfully connected to MySQL database");
             createTables();
         } catch (Exception e) {
             logger.severe("Failed to connect to MySQL database: " + e.getMessage());
-            logger.severe("Falling back to YAML storage...");
         }
     }
 
     private void createTables() {
-        // Create tables if they don't exist
         try (Connection conn = getConnection()) {
             // Political Power table
             try (PreparedStatement stmt = conn.prepareStatement(
@@ -103,6 +94,15 @@ public class DatabaseManager {
                 logger.fine("Created/verified corruption table");
             }
 
+            // Town Corruption table
+            try (PreparedStatement stmt = conn.prepareStatement(
+                    "CREATE TABLE IF NOT EXISTS " + prefix + "town_corruption (" +
+                            "town_uuid VARCHAR(36) PRIMARY KEY, " +
+                            "corruption_amount DOUBLE NOT NULL)")) {
+                stmt.executeUpdate();
+                logger.fine("Created/verified town_corruption table");
+            }
+
             // Active Policies table
             try (PreparedStatement stmt = conn.prepareStatement(
                     "CREATE TABLE IF NOT EXISTS " + prefix + "active_policies (" +
@@ -117,15 +117,15 @@ public class DatabaseManager {
                 logger.fine("Created/verified active_policies table");
             }
 
-            logger.info("Successfully created/verified all database tables!");
+            logger.info("Successfully created/verified all database tables");
         } catch (SQLException e) {
             logger.severe("Failed to create database tables: " + e.getMessage());
         }
     }
 
     public Connection getConnection() throws SQLException {
-        if (!useMySQL || dataSource == null) {
-            throw new SQLException("MySQL is not enabled or connection failed");
+        if (dataSource == null || dataSource.isClosed()) {
+            throw new SQLException("Database connection is not available");
         }
         return dataSource.getConnection();
     }
@@ -135,10 +135,6 @@ public class DatabaseManager {
             logger.info("Closing database connection pool");
             dataSource.close();
         }
-    }
-
-    public boolean isUsingMySQL() {
-        return useMySQL && dataSource != null;
     }
 
     public String getPrefix() {

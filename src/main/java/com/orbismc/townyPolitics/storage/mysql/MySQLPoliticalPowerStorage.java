@@ -1,9 +1,9 @@
 package com.orbismc.townyPolitics.storage.mysql;
 
 import com.orbismc.townyPolitics.TownyPolitics;
-import com.orbismc.townyPolitics.storage.IPoliticalPowerStorage;
 import com.orbismc.townyPolitics.DatabaseManager;
-import com.orbismc.townyPolitics.utils.DelegateLogger;
+import com.orbismc.townyPolitics.storage.AbstractMySQLStorage;
+import com.orbismc.townyPolitics.storage.IPoliticalPowerStorage;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -13,24 +13,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class MySQLPoliticalPowerStorage implements IPoliticalPowerStorage {
-
-    private final TownyPolitics plugin;
-    private final DatabaseManager dbManager;
-    private final String prefix;
-    private final DelegateLogger logger;
+public class MySQLPoliticalPowerStorage extends AbstractMySQLStorage implements IPoliticalPowerStorage {
 
     public MySQLPoliticalPowerStorage(TownyPolitics plugin, DatabaseManager dbManager) {
-        this.plugin = plugin;
-        this.dbManager = dbManager;
-        this.prefix = dbManager.getPrefix();
-        this.logger = new DelegateLogger(plugin, "MySQLPPStorage");
+        super(plugin, dbManager, "MySQLPPStorage");
         logger.info("MySQL Political Power Storage initialized");
     }
 
     @Override
     public void savePP(UUID nationUUID, double amount) {
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
                      "INSERT INTO " + prefix + "political_power (nation_uuid, power_amount) " +
                              "VALUES (?, ?) " +
@@ -40,9 +32,8 @@ public class MySQLPoliticalPowerStorage implements IPoliticalPowerStorage {
             stmt.setDouble(2, amount);
             stmt.setDouble(3, amount);
 
-            int updated = stmt.executeUpdate();
-            logger.fine("Saved political power for nation " + nationUUID + ": " + amount +
-                    " (rows affected: " + updated + ")");
+            stmt.executeUpdate();
+            logger.fine("Saved political power for nation " + nationUUID + ": " + amount);
         } catch (SQLException e) {
             logger.severe("Failed to save political power: " + e.getMessage());
         }
@@ -52,7 +43,7 @@ public class MySQLPoliticalPowerStorage implements IPoliticalPowerStorage {
     public Map<UUID, Double> loadAllPP() {
         Map<UUID, Double> result = new HashMap<>();
 
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
                      "SELECT nation_uuid, power_amount FROM " + prefix + "political_power")) {
 
@@ -70,17 +61,11 @@ public class MySQLPoliticalPowerStorage implements IPoliticalPowerStorage {
                 }
             }
 
-            logger.info("Loaded " + count + " political power entries from database");
+            logger.info("Loaded " + count + " political power entries");
         } catch (SQLException e) {
             logger.severe("Failed to load political power: " + e.getMessage());
         }
 
         return result;
-    }
-
-    @Override
-    public void saveAll() {
-        logger.fine("saveAll() called (no action needed for MySQL storage)");
-        // No specific action needed for MySQL as data is saved immediately
     }
 }

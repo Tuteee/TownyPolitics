@@ -2,152 +2,99 @@
 
 # Debug Settings
 debug:
-  enabled: false        # Set to true to enable debug logging
-  log_to_file: true     # Whether to write logs to a file instead of console
-  file_name: "debug.log" # Name of the debug log file
-  log_level: INFO       # Log level - options: FINE, INFO, WARNING, SEVERE
+  enabled: false
+  log_to_file: true
+  file_name: "debug.log"
+  log_level: INFO
 
 # Political Power Settings
 political_power:
-  # The maximum daily political power gain for any nation
   max_daily_gain: 5.0
-
-  # The minimum daily political power gain for any nation with at least one resident
   min_daily_gain: 1.0
-
-  # The cost of various diplomatic actions (will be implemented in future updates)
-  costs:
-    ally: 10.0
-    enemy: 5.0
-    neutral: 2.0
 
 # Government Settings
 government:
-  # Cooldown between government changes (in days)
   change_cooldown: 30
-
-  # Time it takes to switch governments after the first switch (in days)
   switch_time: 7
 
 # Corruption Settings
 corruption:
-  # Base daily corruption gain for all nations
   base_daily_gain: 0.5
-
-  # Corruption thresholds (%)
   thresholds:
-    low: 25.0       # Low corruption threshold
-    medium: 50.0    # Medium corruption threshold
-    high: 75.0      # High corruption threshold
-    critical: 90.0  # Critical corruption threshold
-
-  # Embezzlement rates for tax income (% of taxes embezzled)
+    low: 25.0
+    medium: 50.0
+    high: 75.0
+    critical: 90.0
   embezzlement:
-    low: 0.05        # 5% of tax revenue lost at low corruption
-    medium: 0.15     # 15% of tax revenue lost at medium corruption
-    high: 0.30       # 30% of tax revenue lost at high corruption
-    critical: 0.60   # 60% of tax revenue lost at critical corruption
-
-  # Notifications
+    low: 0.05
+    medium: 0.15
+    high: 0.30
+    critical: 0.60
   notifications:
-    embezzlement_message: true  # Show embezzlement messages in nation chat
-
-  # Effects of corruption thresholds
+    embezzlement_message: true
   effects:
-    # Taxation modifier effects by threshold (values are multiplication factors)
     taxation:
-      low: 1.05      # +5% max taxation
-      medium: 1.10   # +10% max taxation
-      high: 1.15     # +15% max taxation
-      critical: 1.20 # +20% max taxation
-
-    # Political Power modifiers by threshold
+      low: 1.05
+      medium: 1.10
+      high: 1.15
+      critical: 1.20
     political_power:
-      low: 1.0       # No effect
-      medium: 0.9    # -10% PP gain
-      high: 0.75     # -25% PP gain
-      critical: 0.5  # -50% PP gain
-
-    # Resource output modifiers by threshold
+      low: 1.0
+      medium: 0.9
+      high: 0.75
+      critical: 0.5
     resources:
-      low: 0.95      # -5% resource output
-      medium: 0.85   # -15% resource output
-      high: 0.75     # -25% resource output
-      critical: 0.6  # -40% resource output
-
-    # Spending modifiers by threshold
+      low: 0.95
+      medium: 0.85
+      high: 0.75
+      critical: 0.6
     spending:
-      low: 1.1       # +10% spending costs
-      medium: 1.2    # +20% spending costs
-      high: 1.3      # +30% spending costs
-      critical: 1.5  # +50% spending costs
-
-  # Political power penalties by threshold
+      low: 1.1
+      medium: 1.2
+      high: 1.3
+      critical: 1.5
   power_penalties:
-    high: 0.025      # 2.5% daily political power loss
-    critical: 0.05   # 5% daily political power loss
-
-  # Future security spending levels (to be implemented)
-  security_spending:
-    level_1:
-      cost: 5.0
-      reduction: 20.0
-    level_2:
-      cost: 10.0
-      reduction: 40.0
-    level_3:
-      cost: 20.0
-      reduction: 70.0
+    high: 0.025
+    critical: 0.05
 
 # Town Corruption Settings
 town_corruption:
-  # Base daily corruption gain for all towns
   base_daily_gain: 0.4
-  # Corruption thresholds (%)
   thresholds:
-    low: 25.0       # Low corruption threshold
-    medium: 50.0    # Medium corruption threshold
-    high: 75.0      # High corruption threshold
-    critical: 90.0  # Critical corruption threshold
-  # Effects of corruption thresholds
+    low: 25.0
+    medium: 50.0
+    high: 75.0
+    critical: 90.0
   effects:
-    # Taxation modifier effects by threshold
     taxation:
-      low: 0.95      # -5% tax income
-      medium: 0.90   # -10% tax income
-      high: 0.80     # -20% tax income
-      critical: 0.70 # -30% tax income
-    # Trade modifiers by threshold
+      low: 0.95
+      medium: 0.90
+      high: 0.80
+      critical: 0.70
     trade:
-      low: 0.95      # -5% trade income
-      medium: 0.90   # -10% trade income
-      high: 0.80     # -20% trade income
-      critical: 0.70 # -30% trade income
+      low: 0.95
+      medium: 0.90
+      high: 0.80
+      critical: 0.70
 
 # Town Government Settings
 town_government:
-  # Cooldown between government changes (in days)
   change_cooldown: 15
 
 # Town Political Power Settings
 town_political_power:
-  # The base daily political power gain for towns
   base_gain: 0.8
-
-  # The maximum daily political power gain for any town
   max_daily_gain: 4.0
-
-  # The minimum daily political power gain for any town with at least one resident
   min_daily_gain: 0.8
+  nation_bonus: 0.1
 
 # Database Settings
 database:
-  use_mysql: false  # Set to true to use MySQL instead of YAML files
   host: localhost
   port: 3306
   database: townypolitics
   username: root
   password: password
-  prefix: tp_  # Table prefix to avoid conflicts with other plugins
+  prefix: tp_
   connection_pool_size: 10
-  max_lifetime: 1800000  # 30 minutes in milliseconds
+  max_lifetime: 1800000

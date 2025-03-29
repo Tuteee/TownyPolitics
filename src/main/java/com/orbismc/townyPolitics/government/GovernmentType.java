@@ -11,7 +11,7 @@ public enum GovernmentType {
 
     private final String displayName;
     private final String description;
-    private final boolean nationOnly; // True if this is only for nations
+    private final boolean nationOnly;
 
     GovernmentType(String displayName, String description, boolean nationOnly) {
         this.displayName = displayName;
@@ -35,10 +35,6 @@ public enum GovernmentType {
         return this == CONSTITUTIONAL_MONARCHY || this == REPUBLIC || this == DIRECT_DEMOCRACY;
     }
 
-    /**
-     * Get array of government types available for towns
-     * @return Array of town-available government types
-     */
     public static GovernmentType[] getTownGovernmentTypes() {
         return Arrays.stream(values())
                 .filter(type -> !type.isNationOnly())

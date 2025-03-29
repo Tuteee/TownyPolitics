@@ -1,8 +1,9 @@
 package com.orbismc.townyPolitics.storage.mysql;
 
 import com.orbismc.townyPolitics.TownyPolitics;
-import com.orbismc.townyPolitics.storage.ICorruptionStorage;
 import com.orbismc.townyPolitics.DatabaseManager;
+import com.orbismc.townyPolitics.storage.AbstractMySQLStorage;
+import com.orbismc.townyPolitics.storage.ICorruptionStorage;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,28 +13,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class MySQLCorruptionStorage implements ICorruptionStorage {
-
-    private final TownyPolitics plugin;
-    private final DatabaseManager dbManager;
-    private final String prefix;
+public class MySQLCorruptionStorage extends AbstractMySQLStorage implements ICorruptionStorage {
 
     public MySQLCorruptionStorage(TownyPolitics plugin, DatabaseManager dbManager) {
-        this.plugin = plugin;
-        this.dbManager = dbManager;
-        this.prefix = dbManager.getPrefix();
+        super(plugin, dbManager, "MySQLCorruptionStorage");
+        logger.info("MySQL Corruption Storage initialized");
     }
 
     @Override
     public void saveCorruption(UUID uuid, double amount, boolean isNation) {
-        if (!isNation) {
-            // Currently only support corruption for nations
-            return;
-        }
+        String tableName = isNation ? "corruption" : "town_corruption";
+        String columnName = isNation ? "nation_uuid" : "town_uuid";
 
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
-                     "INSERT INTO " + prefix + "corruption (nation_uuid, corruption_amount) " +
+                     "INSERT INTO " + prefix + tableName + " (" + columnName + ", corruption_amount) " +
                              "VALUES (?, ?) " +
                              "ON DUPLICATE KEY UPDATE corruption_amount = ?")) {
 
@@ -42,43 +36,42 @@ public class MySQLCorruptionStorage implements ICorruptionStorage {
             stmt.setDouble(3, amount);
 
             stmt.executeUpdate();
+            logger.fine("Saved corruption for " + (isNation ? "nation" : "town") + " " + uuid + ": " + amount);
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to save corruption: " + e.getMessage());
+            logger.severe("Failed to save corruption: " + e.getMessage());
         }
     }
 
     @Override
     public Map<UUID, Double> loadAllCorruption(boolean isNation) {
         Map<UUID, Double> result = new HashMap<>();
+        String tableName = isNation ? "corruption" : "town_corruption";
+        String columnName = isNation ? "nation_uuid" : "town_uuid";
 
-        if (!isNation) {
-            // Currently only support corruption for nations
-            return result;
-        }
-
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT nation_uuid, corruption_amount FROM " + prefix + "corruption")) {
+                     "SELECT " + columnName + ", corruption_amount FROM " + prefix + tableName)) {
 
             ResultSet rs = stmt.executeQuery();
+            int count = 0;
+
             while (rs.next()) {
                 try {
-                    UUID uuid = UUID.fromString(rs.getString("nation_uuid"));
+                    UUID uuid = UUID.fromString(rs.getString(columnName));
                     double corruption = rs.getDouble("corruption_amount");
                     result.put(uuid, corruption);
+                    count++;
                 } catch (IllegalArgumentException e) {
-                    plugin.getLogger().warning("Invalid UUID in database: " + e.getMessage());
+                    logger.warning("Invalid UUID in database: " + e.getMessage());
                 }
             }
+
+            logger.info("Loaded " + count + " corruption entries for " +
+                    (isNation ? "nations" : "towns"));
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to load corruption: " + e.getMessage());
+            logger.severe("Failed to load corruption: " + e.getMessage());
         }
 
         return result;
-    }
-
-    @Override
-    public void saveAll() {
-        // No specific action needed for MySQL as data is saved immediately
     }
 }

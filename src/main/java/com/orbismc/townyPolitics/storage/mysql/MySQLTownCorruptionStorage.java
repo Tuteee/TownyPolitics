@@ -1,10 +1,9 @@
-// MySQLTownCorruptionStorage.java
 package com.orbismc.townyPolitics.storage.mysql;
 
 import com.orbismc.townyPolitics.TownyPolitics;
-import com.orbismc.townyPolitics.storage.ITownCorruptionStorage;
 import com.orbismc.townyPolitics.DatabaseManager;
-import com.orbismc.townyPolitics.utils.DelegateLogger;
+import com.orbismc.townyPolitics.storage.AbstractMySQLStorage;
+import com.orbismc.townyPolitics.storage.ITownCorruptionStorage;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -14,40 +13,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class MySQLTownCorruptionStorage implements ITownCorruptionStorage {
-
-    private final TownyPolitics plugin;
-    private final DatabaseManager dbManager;
-    private final String prefix;
-    private final DelegateLogger logger;
+public class MySQLTownCorruptionStorage extends AbstractMySQLStorage implements ITownCorruptionStorage {
 
     public MySQLTownCorruptionStorage(TownyPolitics plugin, DatabaseManager dbManager) {
-        this.plugin = plugin;
-        this.dbManager = dbManager;
-        this.prefix = dbManager.getPrefix();
-        this.logger = new DelegateLogger(plugin, "MySQLTownCorruptionStorage");
-
-        // Create table if it doesn't exist
-        createTable();
+        super(plugin, dbManager, "MySQLTownCorruptionStorage");
         logger.info("MySQL Town Corruption Storage initialized");
-    }
-
-    private void createTable() {
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(
-                     "CREATE TABLE IF NOT EXISTS " + prefix + "town_corruption (" +
-                             "town_uuid VARCHAR(36) PRIMARY KEY, " +
-                             "corruption_amount DOUBLE NOT NULL)")) {
-            stmt.executeUpdate();
-            logger.info("Town corruption table created or verified");
-        } catch (SQLException e) {
-            logger.severe("Failed to create town corruption table: " + e.getMessage());
-        }
     }
 
     @Override
     public void saveCorruption(UUID uuid, double amount) {
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
                      "INSERT INTO " + prefix + "town_corruption (town_uuid, corruption_amount) " +
                              "VALUES (?, ?) " +
@@ -58,7 +33,7 @@ public class MySQLTownCorruptionStorage implements ITownCorruptionStorage {
             stmt.setDouble(3, amount);
 
             int updated = stmt.executeUpdate();
-            logger.fine("Saved corruption for town " + uuid + ": " + amount + " (rows affected: " + updated + ")");
+            logger.fine("Saved corruption for town " + uuid + ": " + amount);
         } catch (SQLException e) {
             logger.severe("Failed to save town corruption: " + e.getMessage());
         }
@@ -68,7 +43,7 @@ public class MySQLTownCorruptionStorage implements ITownCorruptionStorage {
     public Map<UUID, Double> loadAllCorruption() {
         Map<UUID, Double> result = new HashMap<>();
 
-        try (Connection conn = dbManager.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(
                      "SELECT town_uuid, corruption_amount FROM " + prefix + "town_corruption")) {
 
@@ -86,17 +61,11 @@ public class MySQLTownCorruptionStorage implements ITownCorruptionStorage {
                 }
             }
 
-            logger.info("Loaded " + count + " town corruption entries from database");
+            logger.info("Loaded " + count + " town corruption entries");
         } catch (SQLException e) {
             logger.severe("Failed to load town corruption: " + e.getMessage());
         }
 
         return result;
-    }
-
-    @Override
-    public void saveAll() {
-        logger.fine("saveAll() called (no action needed for MySQL storage)");
-        // No specific action needed for MySQL as data is saved immediately
     }
 }

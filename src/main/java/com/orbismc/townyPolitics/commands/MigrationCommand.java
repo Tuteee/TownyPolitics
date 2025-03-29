@@ -1,10 +1,6 @@
 package com.orbismc.townyPolitics.commands;
 
 import com.orbismc.townyPolitics.TownyPolitics;
-import com.orbismc.townyPolitics.storage.YamlCorruptionStorage;
-import com.orbismc.townyPolitics.storage.YamlGovernmentStorage;
-import com.orbismc.townyPolitics.storage.YamlPoliticalPowerStorage;
-import com.orbismc.townyPolitics.storage.YamlTownPoliticalPowerStorage;
 import com.orbismc.townyPolitics.storage.mysql.MySQLCorruptionStorage;
 import com.orbismc.townyPolitics.storage.mysql.MySQLGovernmentStorage;
 import com.orbismc.townyPolitics.storage.mysql.MySQLPoliticalPowerStorage;
