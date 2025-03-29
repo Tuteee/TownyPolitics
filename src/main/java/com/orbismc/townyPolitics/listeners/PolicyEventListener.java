@@ -12,6 +12,7 @@ import com.orbismc.townyPolitics.utils.DelegateLogger;
 import com.orbismc.townyPolitics.utils.EventHelper;
 import com.palmergames.adventure.text.Component;
 import com.palmergames.adventure.text.format.NamedTextColor;
+import com.palmergames.adventure.text.event.HoverEvent;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -56,9 +57,9 @@ public class PolicyEventListener implements Listener {
             return; // No policies to display
         }
 
-        // Start building the hover text
-        Component.Builder hoverBuilder = Component.text()
-                .append(Component.text("Active Policies").color(NamedTextColor.DARK_GREEN))
+        // Create hover text component using a different approach
+        Component hoverText = Component.text("Active Policies")
+                .color(NamedTextColor.DARK_GREEN)
                 .append(Component.newline())
                 .append(Component.newline());
 
@@ -67,17 +68,25 @@ public class PolicyEventListener implements Listener {
             Policy policyDef = policyManager.getPolicy(policy.getPolicyId());
             if (policyDef == null) continue;
 
-            hoverBuilder.append(Component.text("• " + policyDef.getName()).color(NamedTextColor.GREEN))
-                    .append(Component.text(" (" + policy.formatRemainingTime() + ")").color(NamedTextColor.GRAY))
-                    .append(Component.newline());
+            hoverText = hoverText.append(
+                    Component.text("• " + policyDef.getName())
+                            .color(NamedTextColor.GREEN)
+                            .append(Component.text(" (" + policy.formatRemainingTime() + ")")
+                                    .color(NamedTextColor.GRAY))
+                            .append(Component.newline())
+            );
         }
 
-        Component hoverText = hoverBuilder.build();
-        Component policiesComponent = EventHelper.createHoverComponent(
-                "Policies (" + activePolicies.size() + ")",
-                hoverText,
-                NamedTextColor.BLUE
-        );
+        // Create the Policies component
+        Component openBracket = Component.text("[").color(NamedTextColor.GRAY);
+        Component policiesText = Component.text("Policies (" + activePolicies.size() + ")").color(NamedTextColor.BLUE);
+        Component closeBracket = Component.text("]").color(NamedTextColor.GRAY);
+
+        Component policiesComponent = Component.empty()
+                .append(openBracket)
+                .append(policiesText)
+                .append(closeBracket)
+                .hoverEvent(HoverEvent.showText(hoverText));
 
         EventHelper.addComponentToScreen(event, "policies_display", policiesComponent);
     }
@@ -88,9 +97,9 @@ public class PolicyEventListener implements Listener {
             return; // No policies to display
         }
 
-        // Start building the hover text
-        Component.Builder hoverBuilder = Component.text()
-                .append(Component.text("Active Policies").color(NamedTextColor.DARK_GREEN))
+        // Create hover text component
+        Component hoverText = Component.text("Active Policies")
+                .color(NamedTextColor.DARK_GREEN)
                 .append(Component.newline())
                 .append(Component.newline());
 
@@ -99,17 +108,25 @@ public class PolicyEventListener implements Listener {
             Policy policyDef = policyManager.getPolicy(policy.getPolicyId());
             if (policyDef == null) continue;
 
-            hoverBuilder.append(Component.text("• " + policyDef.getName()).color(NamedTextColor.GREEN))
-                    .append(Component.text(" (" + policy.formatRemainingTime() + ")").color(NamedTextColor.GRAY))
-                    .append(Component.newline());
+            hoverText = hoverText.append(
+                    Component.text("• " + policyDef.getName())
+                            .color(NamedTextColor.GREEN)
+                            .append(Component.text(" (" + policy.formatRemainingTime() + ")")
+                                    .color(NamedTextColor.GRAY))
+                            .append(Component.newline())
+            );
         }
 
-        Component hoverText = hoverBuilder.build();
-        Component policiesComponent = EventHelper.createHoverComponent(
-                "Policies (" + activePolicies.size() + ")",
-                hoverText,
-                NamedTextColor.BLUE
-        );
+        // Create the Policies component
+        Component openBracket = Component.text("[").color(NamedTextColor.GRAY);
+        Component policiesText = Component.text("Policies (" + activePolicies.size() + ")").color(NamedTextColor.BLUE);
+        Component closeBracket = Component.text("]").color(NamedTextColor.GRAY);
+
+        Component policiesComponent = Component.empty()
+                .append(openBracket)
+                .append(policiesText)
+                .append(closeBracket)
+                .hoverEvent(HoverEvent.showText(hoverText));
 
         EventHelper.addComponentToScreen(event, "town_policies_display", policiesComponent);
     }

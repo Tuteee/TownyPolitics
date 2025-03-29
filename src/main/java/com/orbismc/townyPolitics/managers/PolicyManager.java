@@ -19,7 +19,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-public class PolicyManager {
+public class PolicyManager implements Manager {
     private final TownyPolitics plugin;
     private final IPolicyStorage storage;
     private final DelegateLogger logger;
@@ -29,7 +29,7 @@ public class PolicyManager {
     private final Map<UUID, Long> lastPolicyActionTimes;
     private final long policyCooldown;
 
-    public PolicyManager(TownyPolitics plugin, IPolicyStorage storage) {
+    public PolicyManager(TownyPolitics plugin, IPolicyStorage storage, GovernmentManager govManager, TownGovernmentManager townGovManager) {
         this.plugin = plugin;
         this.storage = storage;
         this.logger = new DelegateLogger(plugin, "PolicyManager");
@@ -213,6 +213,18 @@ public class PolicyManager {
         logger.info("Loaded " + activeTownPolicies.size() + " towns with active policies");
     }
 
+    @Override
+    public void loadData() {
+        loadPolicies();
+        loadActivePolicies();
+    }
+
+    @Override
+    public void saveAllData() {
+        storage.saveAll();
+        logger.info("Saved policy data to storage");
+    }
+
     /**
      * Get all available policies
      */
@@ -325,8 +337,6 @@ public class PolicyManager {
         }
     }
 
-// Update the enactPolicy method in the PolicyManager class
-
     /**
      * Enact a policy for a town
      * @return true if successful, false if failed
@@ -411,6 +421,7 @@ public class PolicyManager {
         logger.info("Town " + town.getName() + " enacted policy: " + policy.getName());
         return true;
     }
+
     /**
      * Enact a policy for a nation
      * @return true if successful, false if failed

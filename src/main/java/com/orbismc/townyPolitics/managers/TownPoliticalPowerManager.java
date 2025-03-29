@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class TownPoliticalPowerManager {
+public class TownPoliticalPowerManager implements Manager {
 
     private final TownyPolitics plugin;
     private final ITownPoliticalPowerStorage storage;
@@ -20,7 +20,7 @@ public class TownPoliticalPowerManager {
     // Maximum political power limit for towns
     private final double MAX_PP = 500.0;
 
-    public TownPoliticalPowerManager(TownyPolitics plugin, ITownPoliticalPowerStorage storage) {
+    public TownPoliticalPowerManager(TownyPolitics plugin, ITownPoliticalPowerStorage storage, TownGovernmentManager townGovManager) {
         this.plugin = plugin;
         this.storage = storage;
         this.townPP = new HashMap<>();
@@ -30,10 +30,17 @@ public class TownPoliticalPowerManager {
         loadData();
     }
 
+    @Override
     public void loadData() {
         townPP.clear();
         townPP.putAll(storage.loadAllPP());
         logger.info("Loaded political power data for " + townPP.size() + " towns");
+    }
+
+    @Override
+    public void saveAllData() {
+        storage.saveAll();
+        logger.info("Saved town political power data to storage");
     }
 
     public double getPoliticalPower(Town town) {
