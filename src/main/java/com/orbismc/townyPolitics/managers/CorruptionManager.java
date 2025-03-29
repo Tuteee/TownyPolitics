@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class CorruptionManager {
+public class CorruptionManager implements Manager {
 
     private final TownyPolitics plugin;
     private final ICorruptionStorage storage;
@@ -48,10 +48,17 @@ public class CorruptionManager {
         loadData();
     }
 
+    @Override
     public void loadData() {
         nationCorruption.clear();
         nationCorruption.putAll(storage.loadAllCorruption(true));
         debugLogger.info("Loaded corruption data for " + nationCorruption.size() + " nations");
+    }
+
+    @Override
+    public void saveAllData() {
+        storage.saveAll();
+        debugLogger.info("Saved corruption data to storage");
     }
 
     public double getCorruption(Nation nation) {
@@ -101,7 +108,7 @@ public class CorruptionManager {
     /**
      * Check if nation's corruption is at or above a specific threshold
      *
-     * @param nation The nation
+     * @param nation         The nation
      * @param thresholdLevel The threshold level to check (0-4)
      * @return True if corruption is at or above the threshold
      */
@@ -308,7 +315,7 @@ public class CorruptionManager {
     /**
      * Apply effects based on corruption threshold level
      *
-     * @param nation The nation
+     * @param nation   The nation
      * @param oldLevel Previous corruption threshold level
      * @param newLevel Current corruption threshold level
      */
@@ -333,7 +340,7 @@ public class CorruptionManager {
     /**
      * Apply negative effects based on corruption threshold level
      *
-     * @param nation The nation
+     * @param nation         The nation
      * @param thresholdLevel Current corruption threshold level (0-4)
      */
     private void applyCorruptionEffects(Nation nation, int thresholdLevel) {
@@ -350,36 +357,52 @@ public class CorruptionManager {
 
             case 4: // Critical corruption
                 // 5% political power reduction
-                reduction = currentPP * 0.05;
+                private void applyCorruptionEffects (Nation nation,int thresholdLevel){
+                PoliticalPowerManager ppManager = plugin.getPPManager();
+                double currentPP = ppManager.getPoliticalPower(nation);
+                double reduction = 0;
 
-                // Additional critical effects could go here
-                // - Random event chance
-                // - Possible revolts
-                // - Blocked certain actions
-                break;
+                // Apply effects based on threshold level
+                switch (thresholdLevel) {
+                    case 3: // High corruption
+                        // 2.5% political power reduction
+                        reduction = currentPP * 0.025;
+                        break;
+
+                    case 4: // Critical corruption
+                        // 5% political power reduction
+                        reduction = currentPP * 0.05;
+
+                        // Additional critical effects could go here
+                        // - Random event chance
+                        // - Possible revolts
+                        // - Blocked certain actions
+                        break;
+                }
+
+                // Apply political power reduction if any
+                if (reduction > 0) {
+                    ppManager.removePoliticalPower(nation, reduction);
+                    debugLogger.info("Nation " + nation.getName() +
+                            " lost " + String.format("%.2f", reduction) +
+                            " political power due to " + getCorruptionThresholdName(thresholdLevel) +
+                            " corruption levels");
+                }
+            }
+
+            /**
+             * Calculate the political power cost to reduce corruption
+             *
+             * @param amount The amount of corruption to reduce
+             * @return The political power cost
+             */
+            public double calculatePPCostForCorruptionReduction ( double amount){
+                // Base cost from config
+                double baseRate = plugin.getConfig().getDouble("corruption.pp_cost_rate", 2.0);
+
+                // Each point of corruption reduction costs baseRate PP
+                return amount * baseRate;
+            }
         }
-
-        // Apply political power reduction if any
-        if (reduction > 0) {
-            ppManager.removePoliticalPower(nation, reduction);
-            debugLogger.info("Nation " + nation.getName() +
-                    " lost " + String.format("%.2f", reduction) +
-                    " political power due to " + getCorruptionThresholdName(thresholdLevel) +
-                    " corruption levels");
-        }
-    }
-
-    /**
-     * Calculate the political power cost to reduce corruption
-     *
-     * @param amount The amount of corruption to reduce
-     * @return The political power cost
-     */
-    public double calculatePPCostForCorruptionReduction(double amount) {
-        // Base cost from config
-        double baseRate = plugin.getConfig().getDouble("corruption.pp_cost_rate", 2.0);
-
-        // Each point of corruption reduction costs baseRate PP
-        return amount * baseRate;
     }
 }

@@ -2,7 +2,6 @@ package com.orbismc.townyPolitics.managers;
 
 import com.palmergames.bukkit.towny.object.Nation;
 import com.orbismc.townyPolitics.TownyPolitics;
-import com.orbismc.townyPolitics.listeners.CoreTownyEventListener;
 import com.orbismc.townyPolitics.policy.PolicyEffects;
 import com.orbismc.townyPolitics.storage.IPoliticalPowerStorage;
 import com.orbismc.townyPolitics.utils.DelegateLogger;
@@ -11,18 +10,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class PoliticalPowerManager {
+public class PoliticalPowerManager implements Manager {
 
     private final TownyPolitics plugin;
     private final IPoliticalPowerStorage storage;
     private final Map<UUID, Double> nationPP; // Cache of nation UUIDs to their political power
-    private CoreTownyEventListener eventListener;
     private final DelegateLogger logger;
 
     // Maximum political power limit
     private final double MAX_PP = 1000.0;
 
-    public PoliticalPowerManager(TownyPolitics plugin, IPoliticalPowerStorage storage) {
+    public PoliticalPowerManager(TownyPolitics plugin, IPoliticalPowerStorage storage, GovernmentManager govManager) {
         this.plugin = plugin;
         this.storage = storage;
         this.nationPP = new HashMap<>();
@@ -32,14 +30,17 @@ public class PoliticalPowerManager {
         loadData();
     }
 
-    public void setEventListener(CoreTownyEventListener eventListener) {
-        this.eventListener = eventListener;
-    }
-
+    @Override
     public void loadData() {
         nationPP.clear();
         nationPP.putAll(storage.loadAllPP());
         logger.info("Loaded political power data for " + nationPP.size() + " nations");
+    }
+
+    @Override
+    public void saveAllData() {
+        storage.saveAll();
+        logger.info("Saved political power data to storage");
     }
 
     public double getPoliticalPower(Nation nation) {
@@ -58,15 +59,6 @@ public class PoliticalPowerManager {
 
         logger.info("Nation " + nation.getName() + " political power set to " +
                 newAmount + " (was " + oldAmount + ")");
-
-        // Update the nation's information if the event listener is available
-        if (eventListener != null) {
-            try {
-                eventListener.updateNationPoliticalPowerMetadata(nation);
-            } catch (Exception e) {
-                logger.warning("Error updating political power display: " + e.getMessage());
-            }
-        }
     }
 
     public void addPoliticalPower(Nation nation, double amount) {

@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class GovernmentManager {
+public class GovernmentManager implements Manager {
 
     private final TownyPolitics plugin;
     private final IGovernmentStorage storage;
@@ -38,6 +38,7 @@ public class GovernmentManager {
         loadData();
     }
 
+    @Override
     public void loadData() {
         townGovernments.clear();
         nationGovernments.clear();
@@ -51,6 +52,12 @@ public class GovernmentManager {
 
         logger.info("Loaded " + townGovernments.size() + " town governments and " +
                 nationGovernments.size() + " nation governments");
+    }
+
+    @Override
+    public void saveAllData() {
+        storage.saveAll();
+        logger.info("Saved government data to storage");
     }
 
     public void reload() {

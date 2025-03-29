@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class TownCorruptionManager {
+public class TownCorruptionManager implements Manager {
 
     private final TownyPolitics plugin;
     private final ITownCorruptionStorage storage;
@@ -28,7 +28,7 @@ public class TownCorruptionManager {
     private final double HIGH_THRESHOLD;
     private final double CRITICAL_THRESHOLD;
 
-    public TownCorruptionManager(TownyPolitics plugin, ITownCorruptionStorage storage) {
+    public TownCorruptionManager(TownyPolitics plugin, ITownCorruptionStorage storage, TownGovernmentManager townGovManager) {
         this.plugin = plugin;
         this.storage = storage;
         this.townCorruption = new HashMap<>();
@@ -44,10 +44,17 @@ public class TownCorruptionManager {
         loadData();
     }
 
+    @Override
     public void loadData() {
         townCorruption.clear();
         townCorruption.putAll(storage.loadAllCorruption());
         logger.info("Loaded corruption data for " + townCorruption.size() + " towns");
+    }
+
+    @Override
+    public void saveAllData() {
+        storage.saveAll();
+        logger.info("Saved town corruption data to storage");
     }
 
     public double getCorruption(Town town) {

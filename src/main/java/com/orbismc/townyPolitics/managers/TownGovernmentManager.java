@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class TownGovernmentManager {
+public class TownGovernmentManager implements Manager {
 
     private final TownyPolitics plugin;
     private final ITownGovernmentStorage storage;
@@ -31,6 +31,7 @@ public class TownGovernmentManager {
         loadData();
     }
 
+    @Override
     public void loadData() {
         townGovernments.clear();
         townChangeTimes.clear();
@@ -39,6 +40,12 @@ public class TownGovernmentManager {
         townChangeTimes.putAll(storage.loadAllChangeTimes());
 
         logger.info("Loaded " + townGovernments.size() + " town governments");
+    }
+
+    @Override
+    public void saveAllData() {
+        storage.saveAll();
+        logger.info("Saved town government data to storage");
     }
 
     public void reload() {
