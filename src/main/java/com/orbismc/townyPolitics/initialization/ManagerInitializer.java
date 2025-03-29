@@ -40,7 +40,7 @@ public class ManagerInitializer {
         logger.info("Town Political Power Manager initialized");
 
         // Initialize taxation manager
-        taxationManager = new TaxationManager(plugin, corruptionManager, townCorruptionManager);
+        taxationManager = new TaxationManager(plugin, corruptionManager);
 
         // Initialize policy manager
         policyManager = new PolicyManager(plugin, storageInit.getPolicyStorage(), govManager, townGovManager);

@@ -57,7 +57,7 @@ public class CommandInitializer {
             plugin.getCommand("taxtest").setExecutor(testEmbezzlementCommand);
 
             // Register migration command
-            new MigrationCommand(plugin);
+            // new MigrationCommand(plugin);
 
             logger.info("All commands registered");
         } catch (Exception e) {
