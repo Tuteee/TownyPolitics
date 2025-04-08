@@ -55,6 +55,13 @@ public class ListenerInitializer {
         pm.registerEvents(townEconomyHook, plugin);
         logger.info("Town Economy Hook registered");
 
+        // Budget-related listeners
+        MilitaryStrengthListener militaryListener = new MilitaryStrengthListener(plugin);
+        InfrastructureCostListener infraListener = new InfrastructureCostListener(plugin);
+        pm.registerEvents(militaryListener, plugin);
+        pm.registerEvents(infraListener, plugin);
+        logger.info("Budget system listeners registered");
+
         logger.info("All event listeners registered");
     }
 }

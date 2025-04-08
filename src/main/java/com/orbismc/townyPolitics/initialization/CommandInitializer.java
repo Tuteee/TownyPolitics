@@ -33,6 +33,10 @@ public class CommandInitializer {
             PolicyCommand townPolicyCommand = new PolicyCommand(plugin, plugin.getPolicyManager(), "town");
             PolicyCommand nationPolicyCommand = new PolicyCommand(plugin, plugin.getPolicyManager(), "nation");
 
+            // Create budget commands
+            BudgetCommand townBudgetCommand = new BudgetCommand(plugin, plugin.getBudgetManager(), "town");
+            BudgetCommand nationBudgetCommand = new BudgetCommand(plugin, plugin.getBudgetManager(), "nation");
+
             // Register nation commands
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "government", nationGovCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "gov", nationGovCommand);
@@ -41,12 +45,14 @@ public class CommandInitializer {
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "corruption", nationCorruptionCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "pp", ppCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "policy", nationPolicyCommand);
+            TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "budget", nationBudgetCommand);
 
             // Register town commands
             TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "government", townGovCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "gov", townGovCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "policy", townPolicyCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "pp", townPpCommand);
+            TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "budget", townBudgetCommand);
 
             // Register TownyAdmin command
             new TownyAdminPoliticsCommand(plugin, plugin.getGovManager(), plugin.getPPManager(),

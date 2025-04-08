@@ -88,6 +88,75 @@ town_political_power:
   min_daily_gain: 0.8
   nation_bonus: 0.1
 
+# Budget System Settings
+budget:
+  cycle_days: 7  # Days between budget cycles
+  categories:
+    military:
+      min_percent: 10
+      max_percent: 40
+      base_cost_per_resident: 5.0
+      effects:
+        underfunded:
+          strength_modifier: 0.75  # 25% weaker soldiers
+          building_damage_modifier: 1.25  # 25% more damage to buildings
+        standard:
+          strength_modifier: 1.0
+          building_damage_modifier: 1.0
+        overfunded:
+          strength_modifier: 1.25  # 25% stronger soldiers
+          building_damage_modifier: 0.75  # 25% less damage to buildings
+
+    infrastructure:
+      min_percent: 15
+      max_percent: 50
+      base_cost_per_claim: 2.0
+      effects:
+        underfunded:
+          claim_cost_modifier: 1.2  # 20% more expensive claims
+          town_block_bonus: 0.8  # 20% fewer blocks per resident
+        standard:
+          claim_cost_modifier: 1.0
+          town_block_bonus: 1.0
+        overfunded:
+          claim_cost_modifier: 0.8  # 20% cheaper claims
+          town_block_bonus: 1.2  # 20% more blocks per resident
+
+    administration:
+      min_percent: 10
+      max_percent: 30
+      base_cost_per_resident: 3.0
+      effects:
+        underfunded:
+          tax_collection_modifier: 0.8  # 20% less taxes collected
+          corruption_gain_modifier: 1.2  # 20% more corruption gain
+        standard:
+          tax_collection_modifier: 1.0
+          corruption_gain_modifier: 1.0
+        overfunded:
+          tax_collection_modifier: 1.2  # 20% more taxes collected
+          corruption_gain_modifier: 0.8  # 20% less corruption gain
+
+    education:
+      min_percent: 5
+      max_percent: 25
+      base_cost_per_resident: 2.0
+      effects:
+        underfunded:
+          pp_gain_modifier: 0.8  # 20% less political power gain
+          policy_cost_modifier: 1.2  # 20% more expensive policies
+        standard:
+          pp_gain_modifier: 1.0
+          policy_cost_modifier: 1.0
+        overfunded:
+          pp_gain_modifier: 1.2  # 20% more political power gain
+          policy_cost_modifier: 0.8  # 20% cheaper policies
+
+  # Funding thresholds (percentage of recommended funding)
+  thresholds:
+    underfunded: 70  # Below 70% of recommended
+    overfunded: 130  # Above 130% of recommended
+
 # Database Settings
 database:
   host: localhost

@@ -3,6 +3,7 @@ package com.orbismc.townyPolitics.managers;
 import com.palmergames.bukkit.towny.object.Nation;
 import com.palmergames.bukkit.towny.object.Town;
 import com.orbismc.townyPolitics.TownyPolitics;
+import com.orbismc.townyPolitics.budget.AdministrationEffects;
 import com.orbismc.townyPolitics.government.GovernmentType;
 import com.orbismc.townyPolitics.policy.PolicyEffects;
 import com.orbismc.townyPolitics.storage.ICorruptionStorage;
@@ -241,12 +242,16 @@ public class CorruptionManager implements Manager {
         GovernmentType govType = govManager.getGovernmentType(nation);
         double govModifier = getGovernmentTypeModifier(govType);
 
-        // For a full implementation, you would factor in security spending here
-        // For now, we'll use a placeholder
-        double securitySpending = 0.0; // Will be implemented in future
-        double securityModifier = 1.0 - (securitySpending * 0.1); // 10% reduction per level
+        // Apply administration effects if available
+        double adminModifier = 1.0;
+        if (plugin.getEffectsManager() != null) {
+            AdministrationEffects adminEffects = plugin.getEffectsManager().getNationAdminEffects(nation);
+            adminModifier = adminEffects.getCorruptionGainModifier();
+            debugLogger.fine("Nation " + nation.getName() + " admin modifier applied to corruption gain: " +
+                    adminModifier);
+        }
 
-        // Policy effects
+        // Apply policy effects
         double policyModifier = 1.0;
         if (plugin.getPolicyManager() != null) {
             PolicyEffects effects = plugin.getPolicyManager().getCombinedPolicyEffects(nation);
@@ -254,12 +259,12 @@ public class CorruptionManager implements Manager {
         }
 
         // Calculate final gain (minimum 0)
-        double finalGain = Math.max(0, baseGain * govModifier * securityModifier * policyModifier);
+        double finalGain = Math.max(0, baseGain * govModifier * adminModifier * policyModifier);
 
         debugLogger.fine("Daily corruption gain for " + nation.getName() +
                 ": base=" + baseGain +
                 ", govMod=" + govModifier +
-                ", securityMod=" + securityModifier +
+                ", adminMod=" + adminModifier +
                 ", policyMod=" + policyModifier +
                 ", final=" + finalGain);
 

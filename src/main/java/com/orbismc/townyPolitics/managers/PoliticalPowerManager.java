@@ -2,6 +2,7 @@ package com.orbismc.townyPolitics.managers;
 
 import com.palmergames.bukkit.towny.object.Nation;
 import com.orbismc.townyPolitics.TownyPolitics;
+import com.orbismc.townyPolitics.budget.EducationEffects;
 import com.orbismc.townyPolitics.policy.PolicyEffects;
 import com.orbismc.townyPolitics.storage.IPoliticalPowerStorage;
 import com.orbismc.townyPolitics.utils.DelegateLogger;
@@ -115,6 +116,16 @@ public class PoliticalPowerManager implements Manager {
         CorruptionManager corruptionManager = plugin.getCorruptionManager();
         double ppModifier = corruptionManager.getPoliticalPowerModifier(nation);
         ppGain *= ppModifier;
+
+        // Apply education effects if available
+        if (plugin.getEffectsManager() != null) {
+            EducationEffects educationEffects = plugin.getEffectsManager().getNationEducationEffects(nation);
+            double educationModifier = educationEffects.getPpGainModifier();
+            ppGain *= educationModifier;
+
+            logger.fine("Nation " + nation.getName() + " education modifier applied to PP gain: " +
+                    educationModifier + " (new gain: " + ppGain + ")");
+        }
 
         // Apply policy modifiers
         if (plugin.getPolicyManager() != null) {

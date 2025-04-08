@@ -19,6 +19,7 @@ public class StorageInitializer {
     private ITownCorruptionStorage townCorruptionStorage;
     private ITownPoliticalPowerStorage townPpStorage;
     private IPolicyStorage policyStorage;
+    private IBudgetStorage budgetStorage;
 
     public StorageInitializer(TownyPolitics plugin, DatabaseManager dbManager) {
         this.plugin = plugin;
@@ -35,6 +36,7 @@ public class StorageInitializer {
         townCorruptionStorage = new MySQLTownCorruptionStorage(plugin, dbManager);
         townPpStorage = new MySQLTownPoliticalPowerStorage(plugin, dbManager);
         policyStorage = new MySQLPolicyStorage(plugin, dbManager);
+        budgetStorage = new MySQLBudgetStorage(plugin, dbManager);
 
         logger.info("MySQL storage initialized");
     }
@@ -47,4 +49,5 @@ public class StorageInitializer {
     public ITownCorruptionStorage getTownCorruptionStorage() { return townCorruptionStorage; }
     public ITownPoliticalPowerStorage getTownPpStorage() { return townPpStorage; }
     public IPolicyStorage getPolicyStorage() { return policyStorage; }
+    public IBudgetStorage getBudgetStorage() { return budgetStorage; }
 }

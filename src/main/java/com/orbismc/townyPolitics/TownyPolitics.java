@@ -26,6 +26,8 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
     private TownPoliticalPowerManager townPpManager;
     private TaxationManager taxationManager;
     private PolicyManager policyManager;
+    private BudgetManager budgetManager;
+    private EffectsManager effectsManager;
 
     @Override
     public void onEnable() {
@@ -56,6 +58,8 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
         this.townPpManager = managerInitializer.getTownPpManager();
         this.taxationManager = managerInitializer.getTaxationManager();
         this.policyManager = managerInitializer.getPolicyManager();
+        this.budgetManager = managerInitializer.getBudgetManager();
+        this.effectsManager = managerInitializer.getEffectsManager();
 
         // Register event listeners
         ListenerInitializer listenerInitializer = new ListenerInitializer(this);
@@ -111,6 +115,7 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
         if (townCorruptionManager != null) townCorruptionManager.saveAllData();
         if (townPpManager != null) townPpManager.saveAllData();
         if (policyManager != null) policyManager.saveAllData();
+        if (budgetManager != null) budgetManager.saveAllData();
     }
 
     public void reload() {
@@ -129,6 +134,7 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
         if (townCorruptionManager != null) townCorruptionManager.loadData();
         if (townPpManager != null) townPpManager.loadData();
         if (policyManager != null) policyManager.reload();
+        if (budgetManager != null) budgetManager.loadData();
 
         debugLogger.info("Configuration reloaded");
     }
@@ -143,6 +149,7 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
         if (townCorruptionManager != null) townCorruptionManager.processNewDay();
         if (townPpManager != null) townPpManager.processNewDay();
         if (policyManager != null) policyManager.processNewDay();
+        if (budgetManager != null) budgetManager.processBudgetCycle();
 
         debugLogger.info("Daily updates complete");
     }
@@ -160,4 +167,6 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
     public PolicyManager getPolicyManager() { return policyManager; }
     public DatabaseManager getDatabaseManager() { return dbManager; }
     public DebugLogger getDebugLogger() { return debugLogger; }
+    public BudgetManager getBudgetManager() { return budgetManager; }
+    public EffectsManager getEffectsManager() { return effectsManager; }
 }
