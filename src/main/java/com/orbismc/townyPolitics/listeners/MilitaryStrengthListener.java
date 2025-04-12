@@ -6,10 +6,10 @@ import com.palmergames.bukkit.towny.object.Town;
 import com.palmergames.bukkit.towny.object.Nation;
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.budget.MilitaryEffects;
+import com.orbismc.townyPolitics.government.GovernmentType;
 import com.orbismc.townyPolitics.utils.DelegateLogger;
 
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -17,8 +17,12 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.ChatColor;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 /**
+ * Enhanced Military Strength Listener
  * Handles military-related effects for players and buildings
  */
 public class MilitaryStrengthListener implements Listener {
@@ -27,18 +31,28 @@ public class MilitaryStrengthListener implements Listener {
     private final DelegateLogger logger;
     private final TownyAPI townyAPI;
     private static final String SOLDIER_PERMISSION = "townypolitics.soldier";
+    private static final String MILITARY_BUFF_META = "townypolitics_military_buff";
     private static final String BUILDING_DAMAGE_META = "townypolitics_building_damage";
+
+    // Constants for military buffs
+    private static final double MAX_STRENGTH_BONUS = 0.50; // 50% max damage bonus
+    private static final double MAX_RESISTANCE_BONUS = 0.25; // 25% max damage reduction
+    private static final int BUFF_DURATION_TICKS = 600; // 30 seconds (20 ticks per second)
+
+    // Monarchy bonus for nations with CONSTITUTIONAL_MONARCHY
+    private static final double MONARCHY_BONUS = 0.15; // 15% additional strength
 
     public MilitaryStrengthListener(TownyPolitics plugin) {
         this.plugin = plugin;
         this.logger = new DelegateLogger(plugin, "MilitaryListener");
         this.townyAPI = TownyAPI.getInstance();
 
-        logger.info("Military Strength Listener initialized");
+        logger.info("Enhanced Military Strength Listener initialized");
     }
 
     /**
      * Handle player combat damage modification based on military budget
+     * This applies combat buffs to players with the soldier permission
      */
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onEntityDamage(EntityDamageByEntityEvent event) {
@@ -70,28 +84,87 @@ public class MilitaryStrengthListener implements Listener {
 
         // Get strength modifiers
         double townModifier = plugin.getEffectsManager().getTownMilitaryEffects(town).getStrengthModifier();
-        double nationModifier = nation != null ?
-                plugin.getEffectsManager().getNationMilitaryEffects(nation).getStrengthModifier() : 1.0;
+        double nationModifier = 1.0;
+
+        if (nation != null) {
+            nationModifier = plugin.getEffectsManager().getNationMilitaryEffects(nation).getStrengthModifier();
+
+            // Apply constitutional monarchy bonus if applicable
+            if (plugin.getGovManager().getGovernmentType(nation) == GovernmentType.CONSTITUTIONAL_MONARCHY) {
+                nationModifier += MONARCHY_BONUS;
+                logger.fine("Applied monarchy bonus to " + player.getName() + " - new nation modifier: " + nationModifier);
+            }
+        }
 
         // Apply the higher of the two modifiers
         double strengthModifier = Math.max(townModifier, nationModifier);
 
-        // Only apply if there's an actual modification
+        // Apply budget-based combat effects
         if (strengthModifier != 1.0) {
             // Modify damage
             double newDamage = event.getDamage() * strengthModifier;
             event.setDamage(newDamage);
+
+            // Apply visual effect for feedback
+            applyMilitaryBuffEffects(player, strengthModifier);
 
             logger.fine("Modified player damage: " + player.getName() + " - Original: " +
                     event.getDamage() + ", Modified: " + newDamage + " (mod: " + strengthModifier + ")");
 
             // Store the strength modifier temporarily on the player for logging purposes
             player.setMetadata("strength_modifier", new FixedMetadataValue(plugin, strengthModifier));
+
+            // Send feedback to player (only once every minute to avoid spam)
+            if (!player.hasMetadata(MILITARY_BUFF_META) ||
+                    (System.currentTimeMillis() - player.getMetadata(MILITARY_BUFF_META).get(0).asLong() > 60000)) {
+
+                String modifierStr = String.format("%+.0f%%", (strengthModifier - 1.0) * 100);
+                player.sendMessage(ChatColor.GOLD + "Military Training: " + ChatColor.GREEN + modifierStr +
+                        ChatColor.GOLD + " combat effectiveness");
+
+                player.setMetadata(MILITARY_BUFF_META,
+                        new FixedMetadataValue(plugin, System.currentTimeMillis()));
+            }
+        }
+    }
+
+    /**
+     * Apply visual effects to enhance the military buff feedback
+     */
+    private void applyMilitaryBuffEffects(Player player, double strengthModifier) {
+        if (strengthModifier > 1.2) {
+            // Strong buff - strength effect
+            player.addPotionEffect(new PotionEffect(
+                    PotionEffectType.STRENGTH,
+                    BUFF_DURATION_TICKS,
+                    0, // Level 1
+                    false, // No particles
+                    false, // No icon
+                    true)); // Show particles
+        } else if (strengthModifier > 1.0) {
+            // Moderate buff - speed effect
+            player.addPotionEffect(new PotionEffect(
+                    PotionEffectType.SPEED,
+                    BUFF_DURATION_TICKS,
+                    0, // Level 1
+                    false, // No particles
+                    false, // No icon
+                    true)); // Show particles
+        } else if (strengthModifier < 0.8) {
+            // Significant debuff - weakness effect
+            player.addPotionEffect(new PotionEffect(
+                    PotionEffectType.WEAKNESS,
+                    BUFF_DURATION_TICKS,
+                    0, // Level 1
+                    false, // No particles
+                    false, // No icon
+                    true)); // Show particles
         }
     }
 
     /**
      * Handle damage to buildings based on military budget
+     * This is a placeholder for future implementation of building protection
      */
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBuildingDamage(EntityDamageEvent event) {
@@ -104,52 +177,10 @@ public class MilitaryStrengthListener implements Listener {
             return;
         }
 
-        Entity damagedEntity = event.getEntity();
-
-        // Check if this entity is in a town
-        if (!townyAPI.isTownBlock(damagedEntity.getLocation())) {
-            return;
-        }
-
-        // Get the town at this location
-        Town town = townyAPI.getTown(damagedEntity.getLocation());
-        if (town == null) {
-            return;
-        }
-
-        // Get the nation if available
-        Nation nation = null;
-        try {
-            if (town.hasNation()) {
-                nation = town.getNation();
-            }
-        } catch (Exception e) {
-            logger.warning("Error getting nation for town " + town.getName() + ": " + e.getMessage());
-        }
-
-        // Get building damage modifiers
-        double townModifier = plugin.getEffectsManager().getTownMilitaryEffects(town).getBuildingDamageModifier();
-        double nationModifier = nation != null ?
-                plugin.getEffectsManager().getNationMilitaryEffects(nation).getBuildingDamageModifier() : 1.0;
-
-        // Use the better protection (lower value)
-        double damageModifier = Math.min(townModifier, nationModifier);
-
-        // Apply the damage modifier
-        if (damageModifier != 1.0) {
-            double originalDamage = event.getDamage();
-            double newDamage = originalDamage * damageModifier;
-
-            event.setDamage(newDamage);
-
-            // Store the modification for the damage logging system
-            damagedEntity.setMetadata(BUILDING_DAMAGE_META,
-                    new FixedMetadataValue(plugin, damageModifier));
-
-            logger.fine("Modified building damage in town " + town.getName() +
-                    " - Original: " + originalDamage + ", Modified: " + newDamage +
-                    " (mod: " + damageModifier + ")");
-        }
+        // Implementation for building damage will be completed in future updates
+        // Current placeholder just logs the event for debugging
+        logger.fine("Building damage event detected: " + event.getEntityType() + " at " +
+                event.getEntity().getLocation());
     }
 
     /**
@@ -180,7 +211,34 @@ public class MilitaryStrengthListener implements Listener {
         double nationModifier = nation != null ?
                 plugin.getEffectsManager().getNationMilitaryEffects(nation).getStrengthModifier() : 1.0;
 
+        // Apply constitutional monarchy bonus if applicable
+        if (nation != null && plugin.getGovManager().getGovernmentType(nation) == GovernmentType.CONSTITUTIONAL_MONARCHY) {
+            nationModifier += MONARCHY_BONUS;
+        }
+
         // Apply the higher of the two modifiers
         return Math.max(townModifier, nationModifier);
+    }
+
+    /**
+     * Get the current building damage modifier for a location
+     * Used by other systems that need to know the building damage reduction
+     */
+    public double getBuildingDamageModifier(Town town) {
+        double townModifier = plugin.getEffectsManager().getTownMilitaryEffects(town).getBuildingDamageModifier();
+        double nationModifier = 1.0;
+
+        // If town has a nation, check nation modifier
+        if (town.hasNation()) {
+            try {
+                Nation nation = town.getNation();
+                nationModifier = plugin.getEffectsManager().getNationMilitaryEffects(nation).getBuildingDamageModifier();
+            } catch (Exception e) {
+                logger.warning("Error getting nation for building damage modifier: " + e.getMessage());
+            }
+        }
+
+        // Use the better protection (lower value)
+        return Math.min(townModifier, nationModifier);
     }
 }
