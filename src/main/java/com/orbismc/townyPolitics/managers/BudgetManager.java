@@ -1,5 +1,6 @@
 package com.orbismc.townyPolitics.managers;
 
+import com.orbismc.townyPolitics.budget.InfrastructureEffects;
 import com.palmergames.bukkit.towny.object.Nation;
 import com.palmergames.bukkit.towny.object.Town;
 import com.orbismc.townyPolitics.TownyPolitics;
@@ -335,9 +336,40 @@ public class BudgetManager implements Manager {
     private void applyInfrastructureEffects(Town town, boolean isNation, String effectsKey) {
         double claimCostMod = plugin.getConfig().getDouble(effectsKey + ".claim_cost_modifier", 1.0);
         double townBlockBonus = plugin.getConfig().getDouble(effectsKey + ".town_block_bonus", 1.0);
+        double wallPlotsMod = plugin.getConfig().getDouble(effectsKey + ".wall_plots_modifier", 1.0); // For future use
 
-        // Store these values in some cached map to be used by other systems
-        // Example: townInfrastructureEffects.put(town.getUUID(), new InfrastructureEffects(claimCostMod, townBlockBonus));
+        // Create the effects object
+        InfrastructureEffects effects = new InfrastructureEffects(claimCostMod, townBlockBonus, wallPlotsMod);
+
+        // Store these values in EffectsManager
+        if (isNation) {
+            plugin.getEffectsManager().registerNationInfrastructureEffects(
+                    town.getNationOrNull().getUUID(), effects);
+            logger.fine("Applied nation infrastructure effects - claim cost: " + claimCostMod +
+                    ", block bonus: " + townBlockBonus);
+        } else {
+            plugin.getEffectsManager().registerTownInfrastructureEffects(town.getUUID(), effects);
+            logger.fine("Applied town infrastructure effects - claim cost: " + claimCostMod +
+                    ", block bonus: " + townBlockBonus);
+        }
+    }
+
+    /**
+     * Apply infrastructure effects for a nation
+     */
+    private void applyNationInfrastructureEffects(Nation nation, String effectsKey) {
+        double claimCostMod = plugin.getConfig().getDouble(effectsKey + ".claim_cost_modifier", 1.0);
+        double townBlockBonus = plugin.getConfig().getDouble(effectsKey + ".town_block_bonus", 1.0);
+        double wallPlotsMod = plugin.getConfig().getDouble(effectsKey + ".wall_plots_modifier", 1.0); // For future use
+
+        // Create the effects object
+        InfrastructureEffects effects = new InfrastructureEffects(claimCostMod, townBlockBonus, wallPlotsMod);
+
+        // Store in EffectsManager
+        plugin.getEffectsManager().registerNationInfrastructureEffects(nation.getUUID(), effects);
+
+        logger.fine("Applied nation infrastructure effects - claim cost: " + claimCostMod +
+                ", block bonus: " + townBlockBonus);
     }
 
     /**

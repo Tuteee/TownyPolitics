@@ -100,12 +100,15 @@ budget:
         underfunded:
           strength_modifier: 0.75  # 25% weaker soldiers
           building_damage_modifier: 1.25  # 25% more damage to buildings
+          wall_plots_modifier: 0.70  # 30% fewer wall plots (placeholder for future)
         standard:
           strength_modifier: 1.0
           building_damage_modifier: 1.0
+          wall_plots_modifier: 1.0
         overfunded:
           strength_modifier: 1.25  # 25% stronger soldiers
           building_damage_modifier: 0.75  # 25% less damage to buildings
+          wall_plots_modifier: 1.30  # 30% more wall plots (placeholder for future)
 
     infrastructure:
       min_percent: 15
@@ -115,12 +118,15 @@ budget:
         underfunded:
           claim_cost_modifier: 1.2  # 20% more expensive claims
           town_block_bonus: 0.8  # 20% fewer blocks per resident
+          wall_plots_modifier: 0.9  # 10% fewer wall plots (placeholder for future)
         standard:
           claim_cost_modifier: 1.0
           town_block_bonus: 1.0
+          wall_plots_modifier: 1.0
         overfunded:
           claim_cost_modifier: 0.8  # 20% cheaper claims
           town_block_bonus: 1.2  # 20% more blocks per resident
+          wall_plots_modifier: 1.1  # 10% more wall plots (placeholder for future)
 
     administration:
       min_percent: 10
@@ -145,12 +151,15 @@ budget:
         underfunded:
           pp_gain_modifier: 0.8  # 20% less political power gain
           policy_cost_modifier: 1.2  # 20% more expensive policies
+          technology_modifier: 0.7  # 30% reduced technology capabilities (placeholder for future)
         standard:
           pp_gain_modifier: 1.0
           policy_cost_modifier: 1.0
+          technology_modifier: 1.0
         overfunded:
           pp_gain_modifier: 1.2  # 20% more political power gain
           policy_cost_modifier: 0.8  # 20% cheaper policies
+          technology_modifier: 1.3  # 30% enhanced technology capabilities (placeholder for future)
 
   # Funding thresholds (percentage of recommended funding)
   thresholds:
