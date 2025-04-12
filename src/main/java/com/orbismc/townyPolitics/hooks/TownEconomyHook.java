@@ -1,14 +1,9 @@
 package com.orbismc.townyPolitics.hooks;
 
 import com.palmergames.bukkit.towny.event.TownBlockClaimCostCalculationEvent;
-import com.palmergames.bukkit.towny.event.TownClaimEvent;
-import com.palmergames.bukkit.towny.event.TownPreClaimEvent;
 import com.palmergames.bukkit.towny.event.TownUpkeepCalculationEvent;
-import com.palmergames.bukkit.towny.event.plot.changeowner.PlotClaimEvent;
 import com.palmergames.bukkit.towny.object.Town;
-import com.palmergames.bukkit.towny.object.TownBlock;
 import com.orbismc.townyPolitics.TownyPolitics;
-import com.orbismc.townyPolitics.policy.PolicyEffects;
 import com.orbismc.townyPolitics.utils.DelegateLogger;
 
 import org.bukkit.event.EventHandler;
@@ -16,7 +11,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 
 /**
- * Hooks into Towny's economy events to apply town policy modifiers
+ * Enhanced TownEconomyHook to apply policy effects to town economy events
  */
 public class TownEconomyHook implements Listener {
 
@@ -37,109 +32,55 @@ public class TownEconomyHook implements Listener {
         Town town = event.getTown();
         double currentUpkeep = event.getUpkeep();
 
-        // Get combined policy effects
-        PolicyEffects effects = plugin.getPolicyManager().getCombinedPolicyEffects(town);
+        // Get policy upkeep modifier
+        double upkeepModifier = plugin.getPolicyEffectsHandler().getUpkeepModifier(town);
 
-        // Apply upkeep modifier
-        double upkeepModifier = effects.getUpkeepModifier();
-        if (upkeepModifier != 1.0) {
-            double newUpkeep = currentUpkeep * upkeepModifier;
+        // Get budget upkeep modifier if available
+        double budgetModifier = 1.0;
+        if (plugin.getEffectsManager() != null) {
+            budgetModifier = plugin.getEffectsManager().getTownInfrastructureEffects(town).getUpkeepModifier();
+        }
+
+        // Apply combined modifier
+        double combinedModifier = upkeepModifier * budgetModifier;
+
+        if (combinedModifier != 1.0) {
+            double newUpkeep = currentUpkeep * combinedModifier;
             event.setUpkeep(newUpkeep);
 
             logger.fine("Modified upkeep for town " + town.getName() + " from " +
                     currentUpkeep + " to " + newUpkeep +
-                    " (" + (upkeepModifier > 1.0 ? "+" : "") +
-                    String.format("%.1f%%", (upkeepModifier - 1.0) * 100) + ")");
+                    " (policy: " + upkeepModifier + ", budget: " + budgetModifier + ")");
         }
     }
 
     /**
      * Apply policy effects to town claim costs
-     * This event is fired before a claim is processed and allows modifying the price
      */
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onTownBlockClaimCostCalculation(TownBlockClaimCostCalculationEvent event) {
         Town town = event.getTown();
         double currentPrice = event.getPrice();
 
-        // Get combined policy effects
-        PolicyEffects effects = plugin.getPolicyManager().getCombinedPolicyEffects(town);
+        // Get policy town block cost modifier
+        double policyModifier = plugin.getPolicyEffectsHandler().getTownBlockCostModifier(town);
 
-        // Apply town block cost modifier
-        double costModifier = effects.getTownBlockCostModifier();
-        if (costModifier != 1.0) {
-            double newPrice = currentPrice * costModifier;
+        // Get budget town block cost modifier if available
+        double budgetModifier = 1.0;
+        if (plugin.getEffectsManager() != null) {
+            budgetModifier = plugin.getEffectsManager().getTownInfrastructureEffects(town).getClaimCostModifier();
+        }
+
+        // Apply combined modifier
+        double combinedModifier = policyModifier * budgetModifier;
+
+        if (combinedModifier != 1.0) {
+            double newPrice = currentPrice * combinedModifier;
             event.setPrice(newPrice);
 
             logger.fine("Modified town claim price for " + town.getName() + " from " +
                     currentPrice + " to " + newPrice +
-                    " (" + (costModifier > 1.0 ? "+" : "") +
-                    String.format("%.1f%%", (costModifier - 1.0) * 100) + ")");
+                    " (policy: " + policyModifier + ", budget: " + budgetModifier + ")");
         }
-    }
-
-    /**
-     * Monitor pre-claim events for potential policy effects
-     * This doesn't modify the price (that's done in TownBlockClaimCostCalculationEvent)
-     * but allows for monitoring and potentially cancelling claims based on policies
-     */
-    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
-    public void onTownPreClaim(TownPreClaimEvent event) {
-        Town town = event.getTown();
-
-        // Get combined policy effects
-        PolicyEffects effects = plugin.getPolicyManager().getCombinedPolicyEffects(town);
-
-        // Example: Log that a pre-claim is happening
-        logger.fine("Town " + town.getName() + " is attempting to claim land with TownBlockCostModifier: " +
-                String.format("%.1f%%", (effects.getTownBlockCostModifier() - 1.0) * 100));
-
-        // You could add policy effects that potentially cancel claims based on certain conditions
-        // For example:
-        /*
-        if (effects.hasPolicyEffect("no_claims_during_war") && town.isAtWar()) {
-            event.setCancelled(true);
-            event.setCancelMessage("Cannot claim land during war due to town policy");
-        }
-        */
-    }
-
-    /**
-     * Monitor successful town claims
-     */
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onTownClaim(TownClaimEvent event) {
-        Town town = event.getTown();
-        if (town == null)
-            return;
-
-        // Get combined policy effects
-        PolicyEffects effects = plugin.getPolicyManager().getCombinedPolicyEffects(town);
-
-        // Just log that a claim was successful
-        logger.fine("Town " + town.getName() + " successfully claimed land with TownBlockCostModifier: " +
-                String.format("%.1f%%", (effects.getTownBlockCostModifier() - 1.0) * 100));
-    }
-
-    /**
-     * Handle plot claims
-     */
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onPlotClaim(PlotClaimEvent event) {
-        TownBlock townBlock = event.getTownBlock();
-        if (townBlock == null || !townBlock.hasTown())
-            return;
-
-        Town town = townBlock.getTownOrNull();
-        if (town == null)
-            return;
-
-        // Get combined policy effects
-        PolicyEffects effects = plugin.getPolicyManager().getCombinedPolicyEffects(town);
-
-        // Log that plot ownership changed
-        logger.fine("Plot claimed in town " + town.getName() +
-                " with PlotCostModifier: " +
-                String.format("%.1f%%", (effects.getPlotCostModifier() - 1.0) * 100));
     }
 }

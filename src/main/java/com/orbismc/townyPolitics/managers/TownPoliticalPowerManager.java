@@ -2,7 +2,6 @@ package com.orbismc.townyPolitics.managers;
 
 import com.palmergames.bukkit.towny.object.Town;
 import com.orbismc.townyPolitics.TownyPolitics;
-import com.orbismc.townyPolitics.policy.PolicyEffects;
 import com.orbismc.townyPolitics.storage.ITownPoliticalPowerStorage;
 import com.orbismc.townyPolitics.utils.DelegateLogger;
 
@@ -127,10 +126,15 @@ public class TownPoliticalPowerManager implements Manager {
             ppGain *= ppModifier;
         }
 
-        // Apply policy modifiers if applicable
-        if (plugin.getPolicyManager() != null) {
-            PolicyEffects effects = plugin.getPolicyManager().getCombinedPolicyEffects(town);
-            ppGain *= effects.getPoliticalPowerGainModifier();
+        // Apply policy modifiers
+        double policyModifier = 1.0;
+        if (plugin.getPolicyEffectsHandler() != null) {
+            policyModifier = plugin.getPolicyEffectsHandler().getPoliticalPowerGainModifier(town);
+            ppGain *= policyModifier;
+
+            logger.fine("Town " + town.getName() + " PP gain calculation: " +
+                    "residents=" + residents + ", baseGain=" + baseGain +
+                    ", calculatedGain=" + ppGain + ", policyMod=" + policyModifier);
         }
 
         // Apply nation bonus - towns in nations with political power get a small bonus

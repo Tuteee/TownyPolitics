@@ -5,7 +5,6 @@ import com.palmergames.bukkit.towny.object.Town;
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.budget.AdministrationEffects;
 import com.orbismc.townyPolitics.government.GovernmentType;
-import com.orbismc.townyPolitics.policy.PolicyEffects;
 import com.orbismc.townyPolitics.storage.ICorruptionStorage;
 import com.orbismc.townyPolitics.utils.DebugLogger;
 
@@ -251,11 +250,10 @@ public class CorruptionManager implements Manager {
                     adminModifier);
         }
 
-        // Apply policy effects
+        // Apply policy modifiers
         double policyModifier = 1.0;
-        if (plugin.getPolicyManager() != null) {
-            PolicyEffects effects = plugin.getPolicyManager().getCombinedPolicyEffects(nation);
-            policyModifier = effects.getCorruptionGainModifier();
+        if (plugin.getPolicyEffectsHandler() != null) {
+            policyModifier = plugin.getPolicyEffectsHandler().getCorruptionGainModifier(nation);
         }
 
         // Calculate final gain (minimum 0)

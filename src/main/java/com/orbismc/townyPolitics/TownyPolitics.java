@@ -1,5 +1,6 @@
 package com.orbismc.townyPolitics;
 
+import com.orbismc.townyPolitics.handlers.PolicyEffectsHandler;
 import com.orbismc.townyPolitics.initialization.CommandInitializer;
 import com.orbismc.townyPolitics.initialization.ListenerInitializer;
 import com.orbismc.townyPolitics.initialization.ManagerInitializer;
@@ -28,6 +29,8 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
     private PolicyManager policyManager;
     private BudgetManager budgetManager;
     private EffectsManager effectsManager;
+    // Add to the TownyPolitics.java class
+    private PolicyEffectsHandler policyEffectsHandler;
 
     @Override
     public void onEnable() {
@@ -60,6 +63,8 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
         this.policyManager = managerInitializer.getPolicyManager();
         this.budgetManager = managerInitializer.getBudgetManager();
         this.effectsManager = managerInitializer.getEffectsManager();
+        // In the onEnable method after policy manager is initialized
+        this.policyEffectsHandler = new PolicyEffectsHandler(this);
 
         // Register event listeners
         ListenerInitializer listenerInitializer = new ListenerInitializer(this);
@@ -169,4 +174,6 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
     public DebugLogger getDebugLogger() { return debugLogger; }
     public BudgetManager getBudgetManager() { return budgetManager; }
     public EffectsManager getEffectsManager() { return effectsManager; }
+    // Add a getter method
+    public PolicyEffectsHandler getPolicyEffectsHandler() { return policyEffectsHandler; }
 }

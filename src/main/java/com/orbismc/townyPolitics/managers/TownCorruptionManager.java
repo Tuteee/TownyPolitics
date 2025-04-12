@@ -133,12 +133,19 @@ public class TownCorruptionManager implements Manager {
         GovernmentType govType = townGovManager.getGovernmentType(town);
         double govModifier = getGovernmentTypeCorruptionModifier(govType);
 
+        // Apply policy modifiers
+        double policyModifier = 1.0;
+        if (plugin.getPolicyEffectsHandler() != null) {
+            policyModifier = plugin.getPolicyEffectsHandler().getCorruptionGainModifier(town);
+        }
+
         // Calculate final gain (minimum 0)
-        double finalGain = Math.max(0, baseGain * govModifier);
+        double finalGain = Math.max(0, baseGain * govModifier * policyModifier);
 
         logger.fine("Daily corruption gain for " + town.getName() +
                 ": base=" + baseGain +
                 ", govMod=" + govModifier +
+                ", policyMod=" + policyModifier +
                 ", final=" + finalGain);
 
         return finalGain;

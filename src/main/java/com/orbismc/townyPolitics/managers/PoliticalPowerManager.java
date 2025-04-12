@@ -3,7 +3,6 @@ package com.orbismc.townyPolitics.managers;
 import com.palmergames.bukkit.towny.object.Nation;
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.budget.EducationEffects;
-import com.orbismc.townyPolitics.policy.PolicyEffects;
 import com.orbismc.townyPolitics.storage.IPoliticalPowerStorage;
 import com.orbismc.townyPolitics.utils.DelegateLogger;
 
@@ -128,9 +127,14 @@ public class PoliticalPowerManager implements Manager {
         }
 
         // Apply policy modifiers
-        if (plugin.getPolicyManager() != null) {
-            PolicyEffects effects = plugin.getPolicyManager().getCombinedPolicyEffects(nation);
-            ppGain *= effects.getPoliticalPowerGainModifier();
+        double policyModifier = 1.0;
+        if (plugin.getPolicyEffectsHandler() != null) {
+            policyModifier = plugin.getPolicyEffectsHandler().getPoliticalPowerGainModifier(nation);
+            ppGain *= policyModifier;
+
+            logger.fine("Nation " + nation.getName() + " PP gain calculation: " +
+                    "residents=" + residents + ", baseGain=" + baseGain +
+                    ", calculatedGain=" + ppGain + ", policyMod=" + policyModifier);
         }
 
         double finalGain = Math.min(maxGain, Math.max(minGain, ppGain));
