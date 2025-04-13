@@ -65,6 +65,10 @@ public class BudgetCommand extends BaseCommand {
                 handleSetBudget(player, resident, args[1], args[2]);
                 break;
 
+            case "cycle":
+                showNextBudgetCycle(player, resident);
+                break;
+
             case "help":
                 showHelp(player);
                 break;
@@ -101,7 +105,9 @@ public class BudgetCommand extends BaseCommand {
             }
 
             // Show information about next budget cycle
-            // TODO: Add method to get time until next budget cycle
+            int daysUntil = budgetManager.getDaysUntilNextCycle(town.getUUID(), false);
+            String timeUntil = budgetManager.getFormattedTimeUntilNextCycle(town.getUUID(), false);
+            player.sendMessage(ChatColor.YELLOW + "Next budget cycle: " + ChatColor.WHITE + timeUntil);
 
         } else {
             Nation nation = getNation(resident, player);
@@ -122,6 +128,61 @@ public class BudgetCommand extends BaseCommand {
                 BudgetAllocation allocation = allocations.get(category);
                 player.sendMessage(ChatColor.YELLOW + category.name() + ": " +
                         ChatColor.WHITE + String.format("%.1f%%", allocation.getPercentage()));
+            }
+
+            // Show information about next budget cycle
+            int daysUntil = budgetManager.getDaysUntilNextCycle(nation.getUUID(), true);
+            String timeUntil = budgetManager.getFormattedTimeUntilNextCycle(nation.getUUID(), true);
+            player.sendMessage(ChatColor.YELLOW + "Next budget cycle: " + ChatColor.WHITE + timeUntil);
+        }
+    }
+
+    /**
+     * Show information about the next budget cycle
+     */
+    private void showNextBudgetCycle(Player player, Resident resident) {
+        if (commandSource.equals("town")) {
+            Town town = getTown(resident, player);
+            if (town == null) return;
+
+            // Check if player is mayor or assistant
+            if (!town.isMayor(resident)) {
+                player.sendMessage(ChatColor.RED + "Only the mayor or assistants can view town budget cycle information.");
+                return;
+            }
+
+            // Get days until next cycle
+            int daysUntil = budgetManager.getDaysUntilNextCycle(town.getUUID(), false);
+            String timeUntil = budgetManager.getFormattedTimeUntilNextCycle(town.getUUID(), false);
+
+            player.sendMessage(ChatColor.GOLD + "=== " + town.getName() + "'s Budget Cycle ===");
+            player.sendMessage(ChatColor.YELLOW + "Next budget cycle: " + ChatColor.WHITE + timeUntil);
+
+            // If cycle is due today
+            if (daysUntil == 0) {
+                player.sendMessage(ChatColor.GREEN + "Your town's budget cycle will process soon.");
+            }
+
+        } else {
+            Nation nation = getNation(resident, player);
+            if (nation == null) return;
+
+            // Check if player is king or assistant
+            if (!nation.isKing(resident) && !nation.hasAssistant(resident)) {
+                player.sendMessage(ChatColor.RED + "Only the nation leader or assistants can view nation budget cycle information.");
+                return;
+            }
+
+            // Get days until next cycle
+            int daysUntil = budgetManager.getDaysUntilNextCycle(nation.getUUID(), true);
+            String timeUntil = budgetManager.getFormattedTimeUntilNextCycle(nation.getUUID(), true);
+
+            player.sendMessage(ChatColor.GOLD + "=== " + nation.getName() + "'s Budget Cycle ===");
+            player.sendMessage(ChatColor.YELLOW + "Next budget cycle: " + ChatColor.WHITE + timeUntil);
+
+            // If cycle is due today
+            if (daysUntil == 0) {
+                player.sendMessage(ChatColor.GREEN + "Your nation's budget cycle will process soon.");
             }
         }
     }
@@ -210,6 +271,8 @@ public class BudgetCommand extends BaseCommand {
                 ChatColor.WHITE + " - Show budget allocations");
         player.sendMessage(ChatColor.YELLOW + "/" + commandSource + " budget set <category> <percentage>" +
                 ChatColor.WHITE + " - Set budget allocation for a category");
+        player.sendMessage(ChatColor.YELLOW + "/" + commandSource + " budget cycle" +
+                ChatColor.WHITE + " - Show information about the next budget cycle");
         player.sendMessage(ChatColor.YELLOW + "/" + commandSource + " budget help" +
                 ChatColor.WHITE + " - Show this help message");
 
@@ -225,7 +288,7 @@ public class BudgetCommand extends BaseCommand {
 
         if (args.length == 1) {
             // Complete subcommands
-            List<String> subCommands = Arrays.asList("info", "set", "help");
+            List<String> subCommands = Arrays.asList("info", "set", "cycle", "help");
             return filterCompletions(subCommands, args[0]);
         } else if (args.length == 2 && args[0].equalsIgnoreCase("set")) {
             // Complete categories
