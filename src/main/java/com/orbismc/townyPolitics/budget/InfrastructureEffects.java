@@ -7,11 +7,17 @@ public class InfrastructureEffects {
     private final double claimCostModifier;
     private final double townBlockBonusModifier;
     private final double wallPlotsModifier; // Placeholder for future wall plots feature
+    private final double upkeepModifier; // Added missing field
 
-    public InfrastructureEffects(double claimCostModifier, double townBlockBonusModifier, double wallPlotsModifier) {
+    public InfrastructureEffects(double claimCostModifier, double townBlockBonusModifier, double wallPlotsModifier, double upkeepModifier) {
         this.claimCostModifier = claimCostModifier;
         this.townBlockBonusModifier = townBlockBonusModifier;
         this.wallPlotsModifier = wallPlotsModifier;
+        this.upkeepModifier = upkeepModifier;
+    }
+
+    public InfrastructureEffects(double claimCostModifier, double townBlockBonusModifier, double wallPlotsModifier) {
+        this(claimCostModifier, townBlockBonusModifier, wallPlotsModifier, 1.0); // Default upkeep modifier
     }
 
     public InfrastructureEffects(double claimCostModifier, double townBlockBonusModifier) {
@@ -28,5 +34,9 @@ public class InfrastructureEffects {
 
     public double getWallPlotsModifier() {
         return wallPlotsModifier;
+    }
+
+    public double getUpkeepModifier() {
+        return upkeepModifier;
     }
 }

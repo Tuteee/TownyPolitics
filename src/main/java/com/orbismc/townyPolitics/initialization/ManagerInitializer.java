@@ -18,6 +18,8 @@ public class ManagerInitializer {
     private TownPoliticalPowerManager townPpManager;
     private TaxationManager taxationManager;
     private PolicyManager policyManager;
+    private BudgetManager budgetManager; // Added missing declaration
+    private EffectsManager effectsManager; // Added missing declaration
 
     public ManagerInitializer(TownyPolitics plugin) {
         this.plugin = plugin;
@@ -46,6 +48,14 @@ public class ManagerInitializer {
         policyManager = new PolicyManager(plugin, storageInit.getPolicyStorage(), govManager, townGovManager);
         logger.info("Policy Manager initialized");
 
+        // Initialize budget manager - using the correct constructor signature
+        budgetManager = new BudgetManager(plugin);
+        logger.info("Budget Manager initialized");
+
+        // Initialize effects manager - using the correct constructor signature
+        effectsManager = new EffectsManager(plugin);
+        logger.info("Effects Manager initialized");
+
         logger.info("All managers initialized");
     }
 
@@ -58,4 +68,6 @@ public class ManagerInitializer {
     public TownPoliticalPowerManager getTownPpManager() { return townPpManager; }
     public TaxationManager getTaxationManager() { return taxationManager; }
     public PolicyManager getPolicyManager() { return policyManager; }
+    public BudgetManager getBudgetManager() { return budgetManager; } // Added missing getter
+    public EffectsManager getEffectsManager() { return effectsManager; } // Added missing getter
 }

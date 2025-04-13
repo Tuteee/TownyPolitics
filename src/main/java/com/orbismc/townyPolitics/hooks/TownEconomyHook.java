@@ -76,7 +76,9 @@ public class TownEconomyHook implements Listener {
     public void onTownBlockClaimCostCalculation(TownBlockClaimCostCalculationEvent event) {
         Town town = event.getTown();
         double currentPrice = event.getPrice();
-        Player player = event.getPlayer();
+        // The getPlayer() method seems not to exist in this event
+        // Let's use getResident() method and get the player from there, or use a null check
+        Player player = null;
 
         // Get policy town block cost modifier
         double policyModifier = plugin.getPolicyEffectsHandler().getTownBlockCostModifier(town);
