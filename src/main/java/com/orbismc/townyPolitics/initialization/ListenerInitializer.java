@@ -1,5 +1,6 @@
 package com.orbismc.townyPolitics.initialization;
 
+import com.orbismc.townyPolitics.components.ElectionStatusComponent; // Added import
 import org.bukkit.plugin.PluginManager;
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.hooks.*;
@@ -22,23 +23,24 @@ public class ListenerInitializer {
         CoreTownyEventListener coreEventListener = new CoreTownyEventListener(plugin);
         pm.registerEvents(coreEventListener, plugin);
 
-        // Register status screen listeners with components
+        // Register status screen listener - Modified
+        // The StatusScreenListener itself will now handle initializing components
         StatusScreenListener statusListener = new StatusScreenListener(plugin);
         pm.registerEvents(statusListener, plugin);
+        logger.info("Status Screen Listener registered");
 
-        // Create government event listener
-        GovernmentEventListener governmentEventListener = new GovernmentEventListener(
-                plugin, plugin.getGovManager(), plugin.getTownGovManager());
-        pm.registerEvents(governmentEventListener, plugin);
 
-        // Create corruption event listener
-        CorruptionEventListener corruptionEventListener = new CorruptionEventListener(
-                plugin, plugin.getCorruptionManager(), plugin.getTownCorruptionManager(), plugin.getPPManager());
-        pm.registerEvents(corruptionEventListener, plugin);
+        // Individual listeners for specific features - REMOVED as StatusScreenListener handles components now
+        // GovernmentEventListener governmentEventListener = new GovernmentEventListener(
+        //        plugin, plugin.getGovManager(), plugin.getTownGovManager());
+        // pm.registerEvents(governmentEventListener, plugin);
 
-        // Create policy event listener
-        PolicyEventListener policyEventListener = new PolicyEventListener(plugin, plugin.getPolicyManager());
-        pm.registerEvents(policyEventListener, plugin);
+        // CorruptionEventListener corruptionEventListener = new CorruptionEventListener(
+        //         plugin, plugin.getCorruptionManager(), plugin.getTownCorruptionManager(), plugin.getPPManager());
+        // pm.registerEvents(corruptionEventListener, plugin);
+
+        // PolicyEventListener policyEventListener = new PolicyEventListener(plugin, plugin.getPolicyManager());
+        // pm.registerEvents(policyEventListener, plugin);
 
         // Transaction handlers
         TransactionEmbezzlementHandler embezzlementHandler = new TransactionEmbezzlementHandler(plugin);

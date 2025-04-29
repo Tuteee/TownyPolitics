@@ -1,5 +1,6 @@
 package com.orbismc.townyPolitics;
 
+import com.orbismc.townyPolitics.election.ElectionManager; // Added import
 import com.orbismc.townyPolitics.handlers.PolicyEffectsHandler;
 import com.orbismc.townyPolitics.initialization.CommandInitializer;
 import com.orbismc.townyPolitics.initialization.ListenerInitializer;
@@ -29,8 +30,8 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
     private PolicyManager policyManager;
     private BudgetManager budgetManager;
     private EffectsManager effectsManager;
-    // Add to the TownyPolitics.java class
     private PolicyEffectsHandler policyEffectsHandler;
+    private ElectionManager electionManager; // Added declaration
 
     @Override
     public void onEnable() {
@@ -44,7 +45,8 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
         // Initialize core components
         initializeCoreComponents();
 
-        // Initialize storage
+        // Initialize storage - DatabaseManager must be initialized first
+        // StorageInitializer's constructor might need dbManager, ensure order
         StorageInitializer storageInitializer = new StorageInitializer(this, dbManager);
         storageInitializer.initialize();
 
@@ -63,7 +65,7 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
         this.policyManager = managerInitializer.getPolicyManager();
         this.budgetManager = managerInitializer.getBudgetManager();
         this.effectsManager = managerInitializer.getEffectsManager();
-        // In the onEnable method after policy manager is initialized
+        this.electionManager = managerInitializer.getElectionManager(); // Added assignment
         this.policyEffectsHandler = new PolicyEffectsHandler(this);
 
         // Register event listeners
@@ -100,6 +102,11 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
 
     @Override
     public void onDisable() {
+        // Stop election task first
+        if (electionManager != null) {
+            electionManager.stopUpdateTask(); // Added stopping the task
+        }
+
         // Save all data on plugin disable
         saveAllData();
 
@@ -121,11 +128,12 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
         if (townPpManager != null) townPpManager.saveAllData();
         if (policyManager != null) policyManager.saveAllData();
         if (budgetManager != null) budgetManager.saveAllData();
+        if (electionManager != null) electionManager.saveAllData(); // Added election manager save
     }
 
     public void reload() {
         // Reload configuration
-        configManager.loadConfig();
+        getConfigManager().loadConfig(); // Use getter for safety
 
         // Reinitialize debugLogger with new config settings
         debugLogger = new DebugLogger(this);
@@ -140,6 +148,7 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
         if (townPpManager != null) townPpManager.loadData();
         if (policyManager != null) policyManager.reload();
         if (budgetManager != null) budgetManager.loadData();
+        if (electionManager != null) electionManager.loadData(); // Added election manager reload
 
         debugLogger.info("Configuration reloaded");
     }
@@ -155,6 +164,7 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
         if (townPpManager != null) townPpManager.processNewDay();
         if (policyManager != null) policyManager.processNewDay();
         if (budgetManager != null) budgetManager.processBudgetCycle();
+        // Election manager uses its own timer, not the daily processor
 
         debugLogger.info("Daily updates complete");
     }
@@ -174,6 +184,6 @@ public class TownyPolitics extends JavaPlugin implements DailyProcessor {
     public DebugLogger getDebugLogger() { return debugLogger; }
     public BudgetManager getBudgetManager() { return budgetManager; }
     public EffectsManager getEffectsManager() { return effectsManager; }
-    // Add a getter method
     public PolicyEffectsHandler getPolicyEffectsHandler() { return policyEffectsHandler; }
+    public ElectionManager getElectionManager() { return electionManager; } // Added getter
 }

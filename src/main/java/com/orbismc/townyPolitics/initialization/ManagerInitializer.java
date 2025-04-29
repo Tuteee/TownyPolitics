@@ -1,6 +1,7 @@
 package com.orbismc.townyPolitics.initialization;
 
 import com.orbismc.townyPolitics.TownyPolitics;
+import com.orbismc.townyPolitics.election.ElectionManager; // Added ElectionManager import
 import com.orbismc.townyPolitics.managers.*;
 import com.orbismc.townyPolitics.storage.*;
 import com.orbismc.townyPolitics.utils.DelegateLogger;
@@ -18,8 +19,9 @@ public class ManagerInitializer {
     private TownPoliticalPowerManager townPpManager;
     private TaxationManager taxationManager;
     private PolicyManager policyManager;
-    private BudgetManager budgetManager; // Added missing declaration
-    private EffectsManager effectsManager; // Added missing declaration
+    private BudgetManager budgetManager;
+    private EffectsManager effectsManager;
+    private ElectionManager electionManager; // Added ElectionManager declaration
 
     public ManagerInitializer(TownyPolitics plugin) {
         this.plugin = plugin;
@@ -48,13 +50,18 @@ public class ManagerInitializer {
         policyManager = new PolicyManager(plugin, storageInit.getPolicyStorage(), govManager, townGovManager);
         logger.info("Policy Manager initialized");
 
-        // Initialize budget manager - using the correct constructor signature
+        // Initialize budget manager
         budgetManager = new BudgetManager(plugin);
         logger.info("Budget Manager initialized");
 
-        // Initialize effects manager - using the correct constructor signature
+        // Initialize effects manager
         effectsManager = new EffectsManager(plugin);
         logger.info("Effects Manager initialized");
+
+        // Initialize election manager - AFTER storage is initialized
+        electionManager = new ElectionManager(plugin, storageInit.getElectionStorage()); // Added ElectionManager initialization
+        logger.info("Election Manager initialized");
+
 
         logger.info("All managers initialized");
     }
@@ -68,6 +75,7 @@ public class ManagerInitializer {
     public TownPoliticalPowerManager getTownPpManager() { return townPpManager; }
     public TaxationManager getTaxationManager() { return taxationManager; }
     public PolicyManager getPolicyManager() { return policyManager; }
-    public BudgetManager getBudgetManager() { return budgetManager; } // Added missing getter
-    public EffectsManager getEffectsManager() { return effectsManager; } // Added missing getter
+    public BudgetManager getBudgetManager() { return budgetManager; }
+    public EffectsManager getEffectsManager() { return effectsManager; }
+    public ElectionManager getElectionManager() { return electionManager; } // Added Getter
 }

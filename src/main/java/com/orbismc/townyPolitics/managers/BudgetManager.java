@@ -293,15 +293,27 @@ public class BudgetManager implements Manager {
      */
     private Map<BudgetCategory, BudgetAllocation> createDefaultBudget(boolean isNation, int residents, int claims) {
         Map<BudgetCategory, BudgetAllocation> budget = new HashMap<>();
+        double totalAllocation = 0;
 
-        // Create default allocations based on recommended amounts
+        // Start with default allocations from config
         for (BudgetCategory category : BudgetCategory.values()) {
             double minPercent = plugin.getConfig().getDouble("budget.categories." + category.getConfigKey() + ".min_percent", 0);
             double maxPercent = plugin.getConfig().getDouble("budget.categories." + category.getConfigKey() + ".max_percent", 100);
 
-            // Default allocation is midpoint of min and max
+            // Default is midpoint of min and max
             double defaultPercent = (minPercent + maxPercent) / 2;
             budget.put(category, new BudgetAllocation(defaultPercent, 100));
+            totalAllocation += defaultPercent;
+        }
+
+        // Normalize to 100% total
+        if (Math.abs(totalAllocation - 100.0) > 0.001) {
+            double scaleFactor = 100.0 / totalAllocation;
+            for (Map.Entry<BudgetCategory, BudgetAllocation> entry : budget.entrySet()) {
+                BudgetAllocation current = entry.getValue();
+                double newPercentage = current.getPercentage() * scaleFactor;
+                entry.setValue(new BudgetAllocation(newPercentage, current.getPriority()));
+            }
         }
 
         return budget;
@@ -700,7 +712,7 @@ public class BudgetManager implements Manager {
     // Command methods for setting budget allocations
 
     /**
-     * Set a budget allocation for a town
+     * Set a budget allocation for a town, ensuring total allocations equal 100%
      */
     public boolean setTownBudgetAllocation(Town town, BudgetCategory category, double percentage) {
         // Validate percentage is within min/max range
@@ -717,7 +729,18 @@ public class BudgetManager implements Manager {
                 k -> createDefaultBudget(false, town.getResidents().size(), town.getTownBlocks().size())
         );
 
-        // Update the allocation
+        // Calculate difference between new and current allocation
+        double currentPercentage = budget.get(category).getPercentage();
+        double difference = percentage - currentPercentage;
+
+        if (difference == 0) {
+            return true; // No change needed
+        }
+
+        // Adjust other categories to maintain 100% total
+        adjustOtherCategories(budget, category, difference);
+
+        // Update the allocation for the requested category
         BudgetAllocation current = budget.get(category);
         BudgetAllocation updated = new BudgetAllocation(percentage, current.getPriority());
         budget.put(category, updated);
@@ -726,10 +749,69 @@ public class BudgetManager implements Manager {
     }
 
     /**
-     * Set a budget allocation for a nation
+     * Adjust other category allocations to maintain 100% total
+     */
+    private void adjustOtherCategories(Map<BudgetCategory, BudgetAllocation> budget, BudgetCategory excludeCategory, double difference) {
+        // Count categories that can be adjusted
+        List<BudgetCategory> adjustableCategories = new ArrayList<>();
+        for (BudgetCategory cat : BudgetCategory.values()) {
+            if (cat != excludeCategory) {
+                adjustableCategories.add(cat);
+            }
+        }
+
+        if (adjustableCategories.isEmpty()) {
+            return;
+        }
+
+        // Distribute the difference equally among other categories
+        double adjustmentPerCategory = -difference / adjustableCategories.size();
+
+        for (BudgetCategory cat : adjustableCategories) {
+            BudgetAllocation current = budget.get(cat);
+            double newPercentage = current.getPercentage() + adjustmentPerCategory;
+
+            // Ensure minimum percentage
+            double minPercent = plugin.getConfig().getDouble("budget.categories." + cat.getConfigKey() + ".min_percent", 0);
+            newPercentage = Math.max(minPercent, newPercentage);
+
+            // Update allocation
+            BudgetAllocation updated = new BudgetAllocation(newPercentage, current.getPriority());
+            budget.put(cat, updated);
+        }
+
+        // Normalize to ensure exactly 100%
+        normalizeAllocations(budget);
+    }
+
+    /**
+     * Normalize allocations to ensure they total exactly 100%
+     */
+    private void normalizeAllocations(Map<BudgetCategory, BudgetAllocation> budget) {
+        double total = 0;
+        for (BudgetAllocation allocation : budget.values()) {
+            total += allocation.getPercentage();
+        }
+
+        if (Math.abs(total - 100.0) < 0.001) {
+            return; // Already totals 100%
+        }
+
+        // Scale all allocations to total 100%
+        double scaleFactor = 100.0 / total;
+        for (Map.Entry<BudgetCategory, BudgetAllocation> entry : budget.entrySet()) {
+            BudgetAllocation current = entry.getValue();
+            double newPercentage = current.getPercentage() * scaleFactor;
+            BudgetAllocation updated = new BudgetAllocation(newPercentage, current.getPriority());
+            entry.setValue(updated);
+        }
+    }
+
+    /**
+     * Set a budget allocation for a nation, ensuring total allocations equal 100%
      */
     public boolean setNationBudgetAllocation(Nation nation, BudgetCategory category, double percentage) {
-        // Validate percentage is within min/max range
+        // Same validation logic as town method
         double minPercent = plugin.getConfig().getDouble("budget.categories." + category.getConfigKey() + ".min_percent", 0);
         double maxPercent = plugin.getConfig().getDouble("budget.categories." + category.getConfigKey() + ".max_percent", 100);
 
@@ -743,15 +825,24 @@ public class BudgetManager implements Manager {
                 k -> createDefaultBudget(true, nation.getNumResidents(), getTotalNationClaims(nation))
         );
 
-        // Update the allocation
+        // Calculate difference between new and current allocation
+        double currentPercentage = budget.get(category).getPercentage();
+        double difference = percentage - currentPercentage;
+
+        if (difference == 0) {
+            return true; // No change needed
+        }
+
+        // Adjust other categories to maintain 100% total
+        adjustOtherCategories(budget, category, difference);
+
+        // Update the allocation for the requested category
         BudgetAllocation current = budget.get(category);
         BudgetAllocation updated = new BudgetAllocation(percentage, current.getPriority());
         budget.put(category, updated);
 
         return true;
     }
-
-    // Add getters for current allocation and effect values
 
     /**
      * Get all budget allocations for a town
@@ -794,9 +885,7 @@ public class BudgetManager implements Manager {
         return (int) Math.ceil(timeRemaining / (24.0 * 60 * 60 * 1000));
     }
 
-    /**
-     * Get a formatted string with time until next budget cycle
-     */
+    //Get a formatted string with time until next budget cycle
     public String getFormattedTimeUntilNextCycle(UUID entityId, boolean isNation) {
         int days = getDaysUntilNextCycle(entityId, isNation);
 

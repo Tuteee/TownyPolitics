@@ -1,14 +1,11 @@
 package com.orbismc.townyPolitics.listeners;
 
+import com.orbismc.townyPolitics.components.*; // Import ElectionStatusComponent
 import com.palmergames.bukkit.towny.event.statusscreen.NationStatusScreenEvent;
 import com.palmergames.bukkit.towny.event.statusscreen.TownStatusScreenEvent;
 import com.palmergames.bukkit.towny.object.Nation;
 import com.palmergames.bukkit.towny.object.Town;
 import com.orbismc.townyPolitics.TownyPolitics;
-import com.orbismc.townyPolitics.components.CorruptionComponent;
-import com.orbismc.townyPolitics.components.GovernmentComponent;
-import com.orbismc.townyPolitics.components.PoliticalPowerComponent;
-import com.orbismc.townyPolitics.components.PolicyComponent;
 import com.orbismc.townyPolitics.utils.DelegateLogger;
 
 import org.bukkit.event.EventHandler;
@@ -28,22 +25,31 @@ public class StatusScreenListener implements Listener {
     private final GovernmentComponent govComponent;
     private final CorruptionComponent corruptionComponent;
     private final PolicyComponent policyComponent;
+    private final ElectionStatusComponent electionComponent; // Added
 
     public StatusScreenListener(TownyPolitics plugin) {
         this.plugin = plugin;
         this.logger = new DelegateLogger(plugin, "StatusScreen");
 
-        // Initialize components
+        // Initialize components - Ensure ElectionManager is available
         this.ppComponent = new PoliticalPowerComponent(plugin);
         this.govComponent = new GovernmentComponent(plugin);
         this.corruptionComponent = new CorruptionComponent(plugin);
         this.policyComponent = new PolicyComponent(plugin);
+        if (plugin.getElectionManager() != null) { // Check if ElectionManager initialized
+            this.electionComponent = new ElectionStatusComponent(plugin, plugin.getElectionManager()); // Added Initialization
+        } else {
+            this.electionComponent = null;
+            logger.warning("ElectionManager is null, ElectionStatusComponent could not be initialized!");
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onNationStatusScreenEarly(NationStatusScreenEvent event) {
         // Clear any default components that we want to replace
-        ppComponent.updateNationPoliticalPowerMetadata(event.getNation());
+        if (ppComponent != null) {
+            ppComponent.updateNationPoliticalPowerMetadata(event.getNation());
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -51,11 +57,12 @@ public class StatusScreenListener implements Listener {
         try {
             Nation nation = event.getNation();
 
-            // Add each component
-            ppComponent.addToNationScreen(event, nation);
-            govComponent.addToNationScreen(event, nation);
-            corruptionComponent.addToNationScreen(event, nation);
-            policyComponent.addToNationScreen(event, nation);
+            // Add each component - Use null checks for safety
+            if (ppComponent != null) ppComponent.addToNationScreen(event, nation);
+            if (govComponent != null) govComponent.addToNationScreen(event, nation);
+            if (corruptionComponent != null) corruptionComponent.addToNationScreen(event, nation);
+            if (policyComponent != null) policyComponent.addToNationScreen(event, nation);
+            if (electionComponent != null) electionComponent.addToNationScreen(event, nation); // Added call
 
         } catch (Exception e) {
             logger.severe("Error adding components to nation status screen: " + e.getMessage());
@@ -68,13 +75,14 @@ public class StatusScreenListener implements Listener {
         try {
             Town town = event.getTown();
 
-            // Add each component
-            govComponent.addToTownScreen(event, town);
-            corruptionComponent.addToTownScreen(event, town);
-            policyComponent.addToTownScreen(event, town);
+            // Add each component - Use null checks for safety
+            if (govComponent != null) govComponent.addToTownScreen(event, town);
+            if (corruptionComponent != null) corruptionComponent.addToTownScreen(event, town);
+            if (policyComponent != null) policyComponent.addToTownScreen(event, town);
+            if (electionComponent != null) electionComponent.addToTownScreen(event, town); // Added call
 
             // Only add town pp component if it's enabled
-            if (plugin.getTownPPManager() != null) {
+            if (plugin.getTownPPManager() != null && ppComponent != null) {
                 ppComponent.addToTownScreen(event, town);
             }
 

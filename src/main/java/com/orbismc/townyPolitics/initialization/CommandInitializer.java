@@ -3,7 +3,7 @@ package com.orbismc.townyPolitics.initialization;
 import com.palmergames.bukkit.towny.TownyCommandAddonAPI;
 import com.palmergames.bukkit.towny.TownyCommandAddonAPI.CommandType;
 import com.orbismc.townyPolitics.TownyPolitics;
-import com.orbismc.townyPolitics.commands.*;
+import com.orbismc.townyPolitics.commands.*; // Import ElectionCommand
 import com.orbismc.townyPolitics.utils.DelegateLogger;
 
 public class CommandInitializer {
@@ -37,6 +37,11 @@ public class CommandInitializer {
             BudgetCommand townBudgetCommand = new BudgetCommand(plugin, plugin.getBudgetManager(), "town");
             BudgetCommand nationBudgetCommand = new BudgetCommand(plugin, plugin.getBudgetManager(), "nation");
 
+            // Create election commands - ADDED
+            ElectionCommand townElectionCommand = new ElectionCommand(plugin, plugin.getElectionManager(), "town");
+            ElectionCommand nationElectionCommand = new ElectionCommand(plugin, plugin.getElectionManager(), "nation");
+
+
             // Register nation commands
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "government", nationGovCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "gov", nationGovCommand);
@@ -46,6 +51,7 @@ public class CommandInitializer {
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "pp", ppCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "policy", nationPolicyCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "budget", nationBudgetCommand);
+            TownyCommandAddonAPI.addSubCommand(CommandType.NATION, "election", nationElectionCommand); // ADDED
 
             // Register town commands
             TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "government", townGovCommand);
@@ -53,6 +59,7 @@ public class CommandInitializer {
             TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "policy", townPolicyCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "pp", townPpCommand);
             TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "budget", townBudgetCommand);
+            TownyCommandAddonAPI.addSubCommand(CommandType.TOWN, "election", townElectionCommand); // ADDED
 
             // Register TownyAdmin command
             new TownyAdminPoliticsCommand(plugin, plugin.getGovManager(), plugin.getPPManager(),

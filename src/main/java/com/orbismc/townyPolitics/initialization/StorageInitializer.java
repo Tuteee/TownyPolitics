@@ -2,7 +2,7 @@ package com.orbismc.townyPolitics.initialization;
 
 import com.orbismc.townyPolitics.TownyPolitics;
 import com.orbismc.townyPolitics.DatabaseManager;
-import com.orbismc.townyPolitics.storage.*;
+import com.orbismc.townyPolitics.storage.*; // Import the new interface
 import com.orbismc.townyPolitics.storage.mysql.*;
 import com.orbismc.townyPolitics.utils.DelegateLogger;
 
@@ -20,6 +20,7 @@ public class StorageInitializer {
     private ITownPoliticalPowerStorage townPpStorage;
     private IPolicyStorage policyStorage;
     private IBudgetStorage budgetStorage;
+    private IElectionStorage electionStorage; // Added Election Storage Interface
 
     public StorageInitializer(TownyPolitics plugin, DatabaseManager dbManager) {
         this.plugin = plugin;
@@ -37,6 +38,7 @@ public class StorageInitializer {
         townPpStorage = new MySQLTownPoliticalPowerStorage(plugin, dbManager);
         policyStorage = new MySQLPolicyStorage(plugin, dbManager);
         budgetStorage = new MySQLBudgetStorage(plugin, dbManager);
+        electionStorage = new MySQLElectionStorage(plugin, dbManager); // Added Election Storage Initialization
 
         logger.info("MySQL storage initialized");
     }
@@ -50,4 +52,5 @@ public class StorageInitializer {
     public ITownPoliticalPowerStorage getTownPpStorage() { return townPpStorage; }
     public IPolicyStorage getPolicyStorage() { return policyStorage; }
     public IBudgetStorage getBudgetStorage() { return budgetStorage; }
+    public IElectionStorage getElectionStorage() { return electionStorage; } // Added Getter
 }
